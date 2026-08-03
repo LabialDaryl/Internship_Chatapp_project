@@ -1,0 +1,47 @@
+<?php
+
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ConversationController;
+use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\ContactController;
+use Illuminate\Support\Facades\Route;
+
+/*
+|--------------------------------------------------------------------------
+| Public Routes (no authentication required)
+|--------------------------------------------------------------------------
+*/
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+
+/*
+|--------------------------------------------------------------------------
+| Protected Routes (require Sanctum token)
+|--------------------------------------------------------------------------
+*/
+Route::middleware('auth:sanctum')->group(function () {
+    // User profile
+    Route::get('/user', [AuthController::class, 'user']);
+    Route::put('/user/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/user/password', [AuthController::class, 'updatePassword']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Conversations
+    Route::apiResource('conversations', ConversationController::class)->only(['index', 'store', 'show']);
+    Route::post('/conversations/{conversation}/participants', [ConversationController::class, 'addParticipant']);
+    Route::delete('/conversations/{conversation}/participants/{user}', [ConversationController::class, 'removeParticipant']);
+    Route::post('/conversations/{conversation}/leave', [ConversationController::class, 'leave']);
+
+    // Messages
+    Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
+    Route::post('/conversations/{conversation}/messages', [ChatController::class, 'send']);
+    Route::post('/conversations/{conversation}/attachments', [ChatController::class, 'uploadAttachment']);
+    Route::post('/conversations/{conversation}/read', [ChatController::class, 'markRead']);
+
+    // Contacts
+    Route::get('/contacts/search', [ContactController::class, 'search']);
+
+    // Real-Time Broadcasting Authentication
+    \Illuminate\Support\Facades\Broadcast::routes();
+});
+

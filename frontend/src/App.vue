@@ -1,7 +1,10 @@
-<script setup>
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <HelloWorld />
+  <router-view />
 </template>
+
+<script setup>
+import { onMounted } from 'vue'
+import { useTheme } from './composables/useTheme'
+
+useTheme()
+</script>
