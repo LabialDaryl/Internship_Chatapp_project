@@ -1,5 +1,5 @@
 <template>
-  <div ref="container" class="flex-1 overflow-y-auto p-6 space-y-4 relative">
+  <div ref="container" class="flex-1 overflow-y-auto p-6 space-y-4 relative" @click="activeDropdownId = null">
     
     <!-- Floating Toast Notification -->
     <div v-if="chatStore.toastMessage" class="fixed top-20 right-8 z-40 bg-violet-600 text-white px-4 py-2 rounded-xl shadow-xl text-xs font-semibold animate-fade-in flex items-center space-x-2">
@@ -25,19 +25,41 @@
         isOwn(msg) ? 'ml-auto items-end' : 'mr-auto items-start'
       ]"
     >
-      <!-- Hover Action Toolbar -->
-      <div
-        v-if="!msg.is_deleted"
-        :class="[
-          'absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity z-20 flex items-center bg-slate-900/90 border border-slate-700/80 rounded-xl px-2 py-1 space-x-1 shadow-lg backdrop-blur-sm',
-          isOwn(msg) ? '-left-36' : '-right-36'
-        ]"
-      >
-        <button @click="chatStore.replyingToMessage = msg" title="Reply to message" class="p-1 hover:text-violet-400 text-slate-400 text-xs">💬</button>
-        <button @click="copyText(msg.body)" title="Copy text" class="p-1 hover:text-violet-400 text-slate-400 text-xs">📋</button>
-        <button @click="$emit('open-forward', msg)" title="Forward message" class="p-1 hover:text-violet-400 text-slate-400 text-xs">➡️</button>
-        <button v-if="isOwn(msg) && msg.type === 'text'" @click="startEdit(msg)" title="Edit message" class="p-1 hover:text-amber-400 text-slate-400 text-xs">✏️</button>
-        <button v-if="isOwn(msg) || isAdmin" @click="chatStore.deleteMessage(msg.id)" title="Delete message" class="p-1 hover:text-rose-400 text-slate-400 text-xs">🗑️</button>
+      <!-- 3-DOT OPTIONS DROPDOWN BUTTON & HOVER TOOLBAR -->
+      <div v-if="!msg.is_deleted" class="flex items-center space-x-1 relative">
+        
+        <!-- 3-Dot Options Trigger Button -->
+        <button
+          @click.stop="activeDropdownId = activeDropdownId === msg.id ? null : msg.id"
+          class="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all opacity-0 group-hover:opacity-100"
+          title="Message options"
+        >
+          ⋮
+        </button>
+
+        <!-- Dropdown Popup Menu -->
+        <div
+          v-if="activeDropdownId === msg.id"
+          class="absolute top-6 z-30 w-36 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
+          :class="isOwn(msg) ? 'right-0' : 'left-0'"
+          @click.stop
+        >
+          <button @click="triggerReply(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+            <span>💬</span> <span>Reply</span>
+          </button>
+          <button @click="copyText(msg.body)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+            <span>📋</span> <span>Copy</span>
+          </button>
+          <button @click="triggerForward(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+            <span>➡️</span> <span>Forward</span>
+          </button>
+          <button v-if="isOwn(msg) && msg.type === 'text'" @click="startEdit(msg)" class="w-full px-3 py-1.5 text-left hover:bg-amber-500/20 text-amber-300 flex items-center space-x-2">
+            <span>✏️</span> <span>Edit</span>
+          </button>
+          <button v-if="isOwn(msg) || isAdmin" @click="triggerDelete(msg)" class="w-full px-3 py-1.5 text-left hover:bg-rose-500/20 text-rose-300 flex items-center space-x-2">
+            <span>🗑️</span> <span>Delete</span>
+          </button>
+        </div>
       </div>
 
       <!-- Sender Name (Group Chat) -->
@@ -95,7 +117,7 @@
         </div>
       </div>
 
-      <!-- STANDARD TEXT MESSAGE TYPE -->
+      <!-- STANDARD TEXT MESSAGE TYPE (WITH @MENTION HIGHLIGHTING) -->
       <div v-else
         :class="[
           'px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm break-words',
@@ -104,7 +126,7 @@
             : 'bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700/50'
         ]"
       >
-        {{ msg.body }}
+        <span v-html="renderMentions(msg.body)"></span>
       </div>
 
       <!-- Time, Edited & Read Status -->
@@ -126,6 +148,16 @@
         <button class="absolute top-4 right-4 text-white bg-slate-900/80 p-2 rounded-full hover:bg-slate-800" @click.stop="lightboxUrl = null">✕</button>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <DeleteMessageModal
+      :show="showDeleteModal"
+      :message="deleteTargetMsg"
+      :isOwn="deleteTargetMsg ? isOwn(deleteTargetMsg) : false"
+      :isAdmin="isAdmin"
+      @close="showDeleteModal = false"
+      @confirm="handleDeleteConfirm"
+    />
   </div>
 </template>
 
@@ -133,6 +165,7 @@
 import { ref, watch, nextTick, computed } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useChatStore } from '../../stores/chat'
+import DeleteMessageModal from './DeleteMessageModal.vue'
 
 const props = defineProps({
   messages: {
@@ -149,15 +182,19 @@ const props = defineProps({
   }
 })
 
-defineEmits(['open-forward'])
+const emit = defineEmits(['open-forward'])
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 
 const container = ref(null)
 const lightboxUrl = ref(null)
+const activeDropdownId = ref(null)
 const editingId = ref(null)
 const editBody = ref('')
+
+const showDeleteModal = ref(false)
+const deleteTargetMsg = ref(null)
 
 const isOwn = (msg) => {
   return msg.sender_id === authStore.user?.id
@@ -169,15 +206,49 @@ const isAdmin = computed(() => {
   return p?.role === 'admin'
 })
 
+const triggerReply = (msg) => {
+  chatStore.replyingToMessage = msg
+  activeDropdownId.value = null
+}
+
+const triggerForward = (msg) => {
+  emit('open-forward', msg)
+  activeDropdownId.value = null
+}
+
+const triggerDelete = (msg) => {
+  deleteTargetMsg.value = msg
+  showDeleteModal.value = true
+  activeDropdownId.value = null
+}
+
+const handleDeleteConfirm = async ({ messageId, type }) => {
+  if (type === 'everyone') {
+    await chatStore.deleteMessage(messageId)
+  } else {
+    // Delete for me: filter locally
+    chatStore.messages = chatStore.messages.filter(m => m.id !== messageId)
+    chatStore.showToast('Removed from your view')
+  }
+}
+
+const renderMentions = (text) => {
+  if (!text) return ''
+  // Regex to highlight @username mentions in vibrant pill badge
+  return text.replace(/@([a-zA-Z0-9_-]+)/g, '<span class="px-1.5 py-0.5 rounded-md bg-violet-600/30 border border-violet-500/40 text-violet-200 font-semibold text-xs inline-block">@$1</span>')
+}
+
 const copyText = (text) => {
   if (!text) return
   navigator.clipboard.writeText(text)
   chatStore.showToast('Copied to clipboard!')
+  activeDropdownId.value = null
 }
 
 const startEdit = (msg) => {
   editingId.value = msg.id
   editBody.value = msg.body
+  activeDropdownId.value = null
 }
 
 const saveEdit = async (msgId) => {

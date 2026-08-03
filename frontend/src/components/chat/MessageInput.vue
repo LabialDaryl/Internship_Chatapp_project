@@ -1,6 +1,32 @@
 <template>
-  <div class="border-t border-slate-800 bg-slate-900/40">
+  <div class="border-t border-slate-800 bg-slate-900/40 relative">
     
+    <!-- @Mention Autocomplete Popup -->
+    <div
+      v-if="showMentionPopup && mentionCandidates.length > 0"
+      class="absolute bottom-full left-4 mb-2 w-64 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden z-30 animate-fade-in"
+    >
+      <div class="px-3 py-1.5 bg-slate-800/80 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700/60">
+        Mention Member
+      </div>
+      <div class="max-h-40 overflow-y-auto custom-scrollbar">
+        <div
+          v-for="user in mentionCandidates"
+          :key="user.id"
+          @click="insertMention(user.username || user.name)"
+          class="px-3 py-2 flex items-center space-x-2.5 hover:bg-violet-600/20 cursor-pointer transition-colors border-b border-slate-800/50 last:border-0"
+        >
+          <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-600 flex items-center justify-center text-[10px] font-bold text-white">
+            {{ user.name?.charAt(0) || user.username?.charAt(0) }}
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-medium text-slate-200 truncate">{{ user.name || user.username }}</p>
+            <p class="text-[10px] text-slate-400">@{{ user.username }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Replying Preview Top Bar -->
     <div v-if="chatStore.replyingToMessage" class="px-4 py-2 bg-slate-800/80 border-b border-slate-700/60 flex items-center justify-between animate-fade-in text-xs">
       <div class="flex items-center space-x-2 min-w-0">
@@ -39,7 +65,7 @@
         type="text"
         v-model="text"
         @input="handleInput"
-        placeholder="Type a message..."
+        placeholder="Type a message... (Type @ to mention)"
         class="input-base rounded-xl py-3 text-sm"
         :disabled="disabled || uploading"
       />
@@ -61,7 +87,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useChatStore } from '../../stores/chat'
 import messagesService from '../../services/messages'
 import Button from '../base/Button.vue'
@@ -77,15 +103,54 @@ const emit = defineEmits(['send'])
 const text = ref('')
 const fileInput = ref(null)
 const uploading = ref(false)
+const showMentionPopup = ref(false)
+const mentionQuery = ref('')
 const chatStore = useChatStore()
 let lastTypingTime = 0
 
-const handleInput = () => {
+const participants = computed(() => {
+  if (!chatStore.activeConversation) return []
+  return (chatStore.activeConversation.participants || []).map(p => p.user).filter(Boolean)
+})
+
+const mentionCandidates = computed(() => {
+  if (!mentionQuery.value) return participants.value
+  const q = mentionQuery.value.toLowerCase()
+  return participants.value.filter(u => 
+    (u.name && u.name.toLowerCase().includes(q)) || 
+    (u.username && u.username.toLowerCase().includes(q))
+  )
+})
+
+const handleInput = (e) => {
+  const val = text.value
+  const lastAt = val.lastIndexOf('@')
+  
+  if (lastAt !== -1 && (lastAt === 0 || val.charAt(lastAt - 1) === ' ')) {
+    const afterAt = val.substring(lastAt + 1)
+    if (!afterAt.includes(' ')) {
+      showMentionPopup.value = true
+      mentionQuery.value = afterAt
+    } else {
+      showMentionPopup.value = false
+    }
+  } else {
+    showMentionPopup.value = false
+  }
+
   const now = Date.now()
   if (now - lastTypingTime > 2000) {
     chatStore.sendTypingWhisper()
     lastTypingTime = now
   }
+}
+
+const insertMention = (username) => {
+  const lastAt = text.value.lastIndexOf('@')
+  if (lastAt !== -1) {
+    text.value = text.value.substring(0, lastAt) + `@${username} `
+  }
+  showMentionPopup.value = false
 }
 
 const triggerFileSelect = () => {
@@ -117,5 +182,6 @@ const handleSend = () => {
   if (!text.value.trim()) return
   emit('send', text.value)
   text.value = ''
+  showMentionPopup.value = false
 }
 </script>
