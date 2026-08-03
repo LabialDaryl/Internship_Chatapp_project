@@ -37,6 +37,24 @@
 
     <!-- Header Actions -->
     <div class="flex items-center space-x-2">
+      <!-- Audio Call Button -->
+      <button
+        @click="$emit('start-call', 'audio')"
+        title="Start Audio Call"
+        class="p-2.5 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-800/80 border border-slate-800/80 transition-all text-xs font-semibold"
+      >
+        📞
+      </button>
+
+      <!-- Video Call Button -->
+      <button
+        @click="$emit('start-call', 'video')"
+        title="Start Video Call"
+        class="p-2.5 rounded-xl text-slate-400 hover:text-violet-400 hover:bg-slate-800/80 border border-slate-800/80 transition-all text-xs font-semibold"
+      >
+        📹
+      </button>
+
       <!-- In-Chat Search Trigger -->
       <button
         @click="$emit('open-search')"
@@ -72,7 +90,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['back', 'open-group-details', 'open-search'])
+defineEmits(['back', 'open-group-details', 'open-search', 'start-call'])
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()

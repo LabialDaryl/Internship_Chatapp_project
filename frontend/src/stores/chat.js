@@ -106,6 +106,9 @@ export const useChatStore = defineStore('chat', {
         .listen('.MessageReactionUpdated', (e) => {
           this.handleReactionUpdated(e)
         })
+        .listen('.CallSignalSent', (e) => {
+          this.handleCallSignal(e)
+        })
         .listen('.MessageRead', (e) => {
           this.handleMessageRead(e)
         })
@@ -174,6 +177,16 @@ export const useChatStore = defineStore('chat', {
         if (idx !== -1) {
           this.messages[idx].reactions = reactions
         }
+      }
+    },
+
+    registerCallSignalHandler(fn) {
+      this.callSignalHandler = fn
+    },
+
+    handleCallSignal(payload) {
+      if (this.callSignalHandler) {
+        this.callSignalHandler(payload)
       }
     },
 

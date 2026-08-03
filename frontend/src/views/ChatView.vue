@@ -31,6 +31,7 @@
           @back="chatStore.activeConversation = null"
           @open-group-details="isGroupDetailsOpen = true"
           @open-search="isSearchModalOpen = true"
+          @start-call="handleStartCall"
         />
 
         <MessageList
@@ -97,12 +98,29 @@
       @close="isSearchModalOpen = false"
       @select="handleSearchSelect"
     />
+
+    <!-- WebRTC Calling Modals -->
+    <IncomingCallModal
+      :show="isIncomingCallOpen"
+      :caller="callPartner"
+      :callType="activeCallType"
+      @accept="handleAcceptCall"
+      @decline="handleDeclineCall"
+    />
+
+    <ActiveCallModal
+      :show="isActiveCallOpen"
+      :partnerName="callPartner?.name || 'Call Partner'"
+      :callType="activeCallType"
+      @end="handleEndCall"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useChatStore } from '../stores/chat'
+import { useAuthStore } from '../stores/auth'
 import { useBreakpoints } from '../composables/useBreakpoints'
 import ChatSidebar from '../components/chat/ChatSidebar.vue'
 import ConversationList from '../components/chat/ConversationList.vue'
@@ -115,10 +133,15 @@ import GroupDetailsModal from '../components/chat/GroupDetailsModal.vue'
 import ProfileModal from '../components/profile/ProfileModal.vue'
 import ForwardMessageModal from '../components/chat/ForwardMessageModal.vue'
 import MessageSearchModal from '../components/chat/MessageSearchModal.vue'
+import IncomingCallModal from '../components/chat/IncomingCallModal.vue'
+import ActiveCallModal from '../components/chat/ActiveCallModal.vue'
 import Button from '../components/base/Button.vue'
 import conversationsService from '../services/conversations'
+import messagesService from '../services/messages'
+import webrtcManager from '../services/webrtc'
 
 const chatStore = useChatStore()
+const authStore = useAuthStore()
 const { isMobile } = useBreakpoints()
 
 const isModalOpen = ref(false)
@@ -129,10 +152,117 @@ const isForwardModalOpen = ref(false)
 const isSearchModalOpen = ref(false)
 const forwardTargetMessage = ref(null)
 
+// Call State
+const isIncomingCallOpen = ref(false)
+const isActiveCallOpen = ref(false)
+const activeCallType = ref('video')
+const callPartner = ref(null)
+const incomingOffer = ref(null)
+let callStartTime = 0
+
 onMounted(async () => {
   await chatStore.fetchConversations()
   await chatStore.searchContacts('a')
+
+  chatStore.registerCallSignalHandler(handleWebRTCSignal)
 })
+
+const handleStartCall = async (type) => {
+  if (!chatStore.activeConversation) return
+
+  activeCallType.value = type
+  const other = chatStore.activeConversation.participants?.find(p => p.user_id !== authStore.user?.id)
+  callPartner.value = other?.user || { name: 'Chat Member' }
+  callStartTime = Date.now()
+
+  try {
+    await webrtcManager.initLocalStream(type === 'video', true)
+    webrtcManager.onIceCandidate = (candidate) => {
+      messagesService.sendCallSignal(chatStore.activeConversation.id, 'ice', candidate)
+    }
+
+    const offer = await webrtcManager.createOffer()
+    await messagesService.sendCallSignal(chatStore.activeConversation.id, 'initiate', {
+      type,
+      offer,
+      caller: authStore.user
+    })
+
+    isActiveCallOpen.value = true
+  } catch {
+    chatStore.showToast('Camera / Microphone permission denied.')
+  }
+}
+
+const handleWebRTCSignal = async ({ conversation_id, sender_id, action, data }) => {
+  if (sender_id === authStore.user?.id) return
+
+  if (action === 'initiate') {
+    activeCallType.value = data.type || 'video'
+    callPartner.value = data.caller || { name: 'Incoming Call' }
+    incomingOffer.value = data.offer
+    isIncomingCallOpen.value = true
+  } else if (action === 'accept') {
+    if (data?.answer) {
+      await webrtcManager.handleAnswer(data.answer)
+    }
+  } else if (action === 'decline') {
+    isIncomingCallOpen.value = false
+    isActiveCallOpen.value = false
+    webrtcManager.close()
+    chatStore.showToast('Call declined.')
+  } else if (action === 'end') {
+    isIncomingCallOpen.value = false
+    isActiveCallOpen.value = false
+    webrtcManager.close()
+    chatStore.showToast('Call ended.')
+  } else if (action === 'ice' && data) {
+    await webrtcManager.addIceCandidate(data)
+  }
+}
+
+const handleAcceptCall = async () => {
+  isIncomingCallOpen.value = false
+  callStartTime = Date.now()
+
+  try {
+    await webrtcManager.initLocalStream(activeCallType.value === 'video', true)
+    webrtcManager.onIceCandidate = (candidate) => {
+      if (chatStore.activeConversation) {
+        messagesService.sendCallSignal(chatStore.activeConversation.id, 'ice', candidate)
+      }
+    }
+
+    const answer = await webrtcManager.handleOffer(incomingOffer.value)
+    if (chatStore.activeConversation) {
+      await messagesService.sendCallSignal(chatStore.activeConversation.id, 'accept', { answer })
+    }
+
+    isActiveCallOpen.value = true
+  } catch {
+    chatStore.showToast('Failed to access media devices.')
+  }
+}
+
+const handleDeclineCall = async () => {
+  isIncomingCallOpen.value = false
+  if (chatStore.activeConversation) {
+    await messagesService.sendCallSignal(chatStore.activeConversation.id, 'decline')
+    await messagesService.logCall(chatStore.activeConversation.id, activeCallType.value, 'declined', 0)
+  }
+}
+
+const handleEndCall = async () => {
+  isActiveCallOpen.value = false
+  const durationSec = Math.floor((Date.now() - callStartTime) / 1000)
+
+  webrtcManager.close()
+
+  if (chatStore.activeConversation) {
+    await messagesService.sendCallSignal(chatStore.activeConversation.id, 'end')
+    await messagesService.logCall(chatStore.activeConversation.id, activeCallType.value, 'completed', durationSec)
+  }
+}
 
 const openForwardModal = (msg) => {
   forwardTargetMessage.value = msg

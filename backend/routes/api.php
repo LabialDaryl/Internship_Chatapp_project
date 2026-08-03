@@ -32,7 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/conversations/{conversation}/participants/{user}', [ConversationController::class, 'removeParticipant']);
     Route::post('/conversations/{conversation}/leave', [ConversationController::class, 'leave']);
 
-    // Messages
+    // Messages & Calling
     Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'send']);
     Route::post('/conversations/{conversation}/attachments', [ChatController::class, 'uploadAttachment']);
@@ -41,6 +41,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/conversations/{conversation}/messages/{message}', [ChatController::class, 'destroyMessage']);
     Route::post('/conversations/{conversation}/messages/{message}/forward', [ChatController::class, 'forwardMessage']);
     Route::post('/conversations/{conversation}/messages/{message}/reactions', [ChatController::class, 'toggleReaction']);
+    Route::post('/conversations/{conversation}/call-signal', [ChatController::class, 'sendCallSignal']);
+    Route::post('/conversations/{conversation}/call-logs', [ChatController::class, 'logCall']);
     Route::get('/conversations/{conversation}/search-messages', [ChatController::class, 'searchMessages']);
     Route::post('/conversations/{conversation}/read', [ChatController::class, 'markRead']);
 

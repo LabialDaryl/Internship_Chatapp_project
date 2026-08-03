@@ -105,6 +105,12 @@
           :isOwn="isOwn(msg)"
         />
 
+        <!-- SYSTEM CALL LOG MESSAGE TYPE -->
+        <div v-if="msg.type === 'system'" class="px-4 py-2 bg-slate-800/80 border border-slate-700/60 rounded-2xl text-xs text-slate-300 flex items-center space-x-2 font-medium my-1 shadow-sm">
+          <span>📞</span>
+          <span>{{ msg.body }}</span>
+        </div>
+
         <!-- IMAGE MESSAGE TYPE -->
         <div v-else-if="msg.type === 'image'" class="overflow-hidden rounded-2xl border border-slate-700/60 shadow-lg group cursor-pointer relative" @click="openLightbox(msg.body)">
           <img :src="msg.body" alt="Attached Image" class="max-w-sm max-h-64 object-cover rounded-2xl transform transition-transform group-hover:scale-105" />

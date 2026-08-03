@@ -48,6 +48,20 @@ export default {
     return response.data.data
   },
 
+  async sendCallSignal(conversationId, action, data = null) {
+    const response = await client.post(`/conversations/${conversationId}/call-signal`, { action, data })
+    return response.data
+  },
+
+  async logCall(conversationId, type, status, durationSeconds = 0) {
+    const response = await client.post(`/conversations/${conversationId}/call-logs`, {
+      type,
+      status,
+      duration_seconds: durationSeconds
+    })
+    return response.data
+  },
+
   async updateMessage(conversationId, messageId, body) {
     const response = await client.put(`/conversations/${conversationId}/messages/${messageId}`, { body })
     return response.data.data

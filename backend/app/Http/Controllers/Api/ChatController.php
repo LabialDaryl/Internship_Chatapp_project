@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\CallSignalSent;
 use App\Events\MessageDeleted;
 use App\Events\MessageRead;
-
 use App\Events\MessageReactionUpdated;
 use App\Events\MessageSent;
 use App\Events\MessageUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
+use App\Models\CallLog;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\MessageReaction;
@@ -254,6 +255,77 @@ class ChatController extends Controller
         }
 
         return response()->json(['data' => $loadedMessage], 201);
+    }
+
+    public function sendCallSignal(Request $request, Conversation $conversation): JsonResponse
+    {
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'action' => 'required|string',
+            'data' => 'nullable',
+        ]);
+
+        try {
+            broadcast(new CallSignalSent(
+                $conversation->id,
+                $request->user()->id,
+                $request->action,
+                $request->data
+            ))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting CallSignalSent failed: ' . $e->getMessage());
+        }
+
+        return response()->json(['status' => 'signal_sent']);
+    }
+
+    public function logCall(Request $request, Conversation $conversation): JsonResponse
+    {
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'type' => 'required|string|in:audio,video',
+            'status' => 'required|string|in:completed,missed,declined',
+            'duration_seconds' => 'nullable|integer',
+        ]);
+
+        $callLog = CallLog::create([
+            'conversation_id' => $conversation->id,
+            'caller_id' => $request->user()->id,
+            'receiver_id' => $request->receiver_id ?? null,
+            'type' => $request->type,
+            'status' => $request->status,
+            'duration_seconds' => $request->duration_seconds ?? 0,
+        ]);
+
+        // Insert system message into conversation history
+        $body = match ($request->status) {
+            'completed' => "Call ended (" . floor($callLog->duration_seconds / 60) . "m " . ($callLog->duration_seconds % 60) . "s)",
+            'declined' => "Call declined",
+            default => "Missed " . ucfirst($request->type) . " Call",
+        };
+
+        $message = $conversation->messages()->create([
+            'sender_id' => $request->user()->id,
+            'body' => $body,
+            'type' => 'system',
+        ]);
+
+        $conversation->touch();
+        $loadedMessage = $message->load(['sender']);
+
+        try {
+            broadcast(new MessageSent($loadedMessage))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting Call Log MessageSent failed: ' . $e->getMessage());
+        }
+
+        return response()->json(['data' => $callLog], 201);
     }
 
     public function searchMessages(Request $request, Conversation $conversation): JsonResponse
