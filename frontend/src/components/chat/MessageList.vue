@@ -20,8 +20,9 @@
     <div
       v-for="msg in messages"
       :key="msg.id"
+      :id="`message-${msg.id}`"
       :class="[
-        'flex flex-col max-w-[85%] space-y-1 relative group',
+        'flex flex-col max-w-[85%] space-y-1 relative group transition-all duration-300',
         isOwn(msg) ? 'ml-auto items-end' : 'mr-auto items-start'
       ]"
     >
@@ -52,9 +53,14 @@
           <!-- Options Dropdown Menu -->
           <div
             v-if="activeDropdownId === msg.id"
-            class="absolute top-0 right-8 z-30 w-36 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
+            class="absolute top-0 right-8 z-30 w-44 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
             @click.stop
           >
+            <!-- Quick Emoji Bar -->
+            <div class="flex items-center justify-between px-2 py-1 border-b border-slate-800 text-sm">
+              <span v-for="e in ['❤️', '😂', '👍', '🔥', '😮']" :key="e" @click="handleReaction(msg, e)" class="cursor-pointer hover:scale-125 transition-transform p-1">{{ e }}</span>
+            </div>
+
             <button @click="triggerReply(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
               <span>💬</span> <span>Reply</span>
             </button>
@@ -73,7 +79,7 @@
           </div>
         </div>
 
-        <!-- MESSAGE BUBBLE / DELETED STATE / INLINE EDIT -->
+        <!-- MESSAGE BUBBLE / DELETED STATE / INLINE EDIT / AUDIO -->
         <!-- DELETED MESSAGE STATE -->
         <div v-if="msg.is_deleted" class="px-4 py-2.5 rounded-2xl text-xs italic text-slate-400 bg-slate-900/60 border border-slate-800">
           🚫 This message was deleted
@@ -91,6 +97,13 @@
             <button @click="saveEdit(msg.id)" class="px-3 py-1 text-xs bg-violet-600 text-white font-semibold rounded-lg">Save</button>
           </div>
         </div>
+
+        <!-- AUDIO VOICE MESSAGE TYPE -->
+        <AudioPlayerBubble
+          v-else-if="msg.type === 'audio'"
+          :src="msg.body"
+          :isOwn="isOwn(msg)"
+        />
 
         <!-- IMAGE MESSAGE TYPE -->
         <div v-else-if="msg.type === 'image'" class="overflow-hidden rounded-2xl border border-slate-700/60 shadow-lg group cursor-pointer relative" @click="openLightbox(msg.body)">
@@ -143,9 +156,14 @@
           <!-- Options Dropdown Menu -->
           <div
             v-if="activeDropdownId === msg.id"
-            class="absolute top-0 left-8 z-30 w-36 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
+            class="absolute top-0 left-8 z-30 w-44 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
             @click.stop
           >
+            <!-- Quick Emoji Bar -->
+            <div class="flex items-center justify-between px-2 py-1 border-b border-slate-800 text-sm">
+              <span v-for="e in ['❤️', '😂', '👍', '🔥', '😮']" :key="e" @click="handleReaction(msg, e)" class="cursor-pointer hover:scale-125 transition-transform p-1">{{ e }}</span>
+            </div>
+
             <button @click="triggerReply(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
               <span>💬</span> <span>Reply</span>
             </button>
@@ -161,6 +179,24 @@
           </div>
         </div>
 
+      </div>
+
+      <!-- EMOJI REACTION PILLS -->
+      <div v-if="groupedReactions(msg).length > 0" class="flex flex-wrap gap-1 px-1 mt-1">
+        <button
+          v-for="r in groupedReactions(msg)"
+          :key="r.emoji"
+          @click="handleReaction(msg, r.emoji)"
+          :class="[
+            'px-2 py-0.5 rounded-full text-xs flex items-center space-x-1 border transition-all',
+            r.hasUserReacted
+              ? 'bg-violet-600/30 border-violet-500/60 text-violet-200 font-bold'
+              : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:border-slate-700'
+          ]"
+        >
+          <span>{{ r.emoji }}</span>
+          <span class="text-[10px]">{{ r.count }}</span>
+        </button>
       </div>
 
       <!-- Time, Edited & Read Status -->
@@ -199,6 +235,7 @@
 import { ref, watch, nextTick, computed } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useChatStore } from '../../stores/chat'
+import AudioPlayerBubble from './AudioPlayerBubble.vue'
 import DeleteMessageModal from './DeleteMessageModal.vue'
 
 const props = defineProps({
@@ -240,6 +277,26 @@ const isAdmin = computed(() => {
   return p?.role === 'admin'
 })
 
+const groupedReactions = (msg) => {
+  if (!msg.reactions || !Array.isArray(msg.reactions)) return []
+  const map = {}
+  msg.reactions.forEach(r => {
+    if (!map[r.emoji]) {
+      map[r.emoji] = { emoji: r.emoji, count: 0, hasUserReacted: false }
+    }
+    map[r.emoji].count++
+    if (r.user_id === authStore.user?.id || r.user?.id === authStore.user?.id) {
+      map[r.emoji].hasUserReacted = true
+    }
+  })
+  return Object.values(map)
+}
+
+const handleReaction = async (msg, emoji) => {
+  activeDropdownId.value = null
+  await chatStore.toggleReaction(msg.id, emoji)
+}
+
 const triggerReply = (msg) => {
   chatStore.replyingToMessage = msg
   activeDropdownId.value = null
@@ -260,7 +317,6 @@ const handleDeleteConfirm = async ({ messageId, type }) => {
   if (type === 'everyone') {
     await chatStore.deleteMessage(messageId)
   } else {
-    // Delete for me: filter locally
     chatStore.messages = chatStore.messages.filter(m => m.id !== messageId)
     chatStore.showToast('Removed from your view')
   }

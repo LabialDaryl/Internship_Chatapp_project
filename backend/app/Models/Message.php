@@ -38,6 +38,11 @@ class Message extends Model
         return $this->belongsTo(Message::class, 'parent_id')->with('sender');
     }
 
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(MessageReaction::class)->with('user:id,name,username');
+    }
+
     public function readReceipts(): HasMany
     {
         return $this->hasMany(ReadReceipt::class);

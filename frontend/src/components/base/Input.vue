@@ -4,7 +4,7 @@
       {{ label }}
     </label>
     <div class="relative">
-      <div v-if="$slots.icon" class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+      <div v-if="$slots.icon" class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-purple-300/60">
         <slot name="icon"></slot>
       </div>
       <input
@@ -15,14 +15,18 @@
         :placeholder="placeholder"
         :disabled="disabled"
         :class="[
-          'input-base',
-          $slots.icon ? 'pl-10' : '',
+          variant === 'pill-purple' ? 'input-pill-purple' : 'input-base',
+          $slots.icon ? 'pl-11' : '',
+          $slots.suffix ? 'pr-11' : '',
           error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''
         ]"
         v-bind="$attrs"
       />
+      <div v-if="$slots.suffix" class="absolute inset-y-0 right-0 pr-4 flex items-center text-purple-300/60">
+        <slot name="suffix"></slot>
+      </div>
     </div>
-    <span v-if="error" class="text-xs text-red-500 mt-1">{{ error }}</span>
+    <span v-if="error" class="text-xs text-red-400 mt-1 pl-3">{{ error }}</span>
   </div>
 </template>
 
@@ -53,6 +57,10 @@ defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  variant: {
+    type: String,
+    default: 'base'
   }
 })
 

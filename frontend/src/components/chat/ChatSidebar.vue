@@ -2,8 +2,8 @@
   <aside class="flex flex-col justify-between items-center py-4 px-2 w-16 bg-slate-900 border-r border-slate-800 text-slate-400">
     <div class="flex flex-col items-center gap-5">
       <!-- App Logo -->
-      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-fuchsia-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-violet-500/30">
-        C
+      <div title="EsmiringHOY — CONNECT & CHAT" class="cursor-pointer transform hover:scale-105 transition-transform">
+        <AppLogo size="sm" :iconOnly="true" />
       </div>
 
       <!-- New Direct Chat Button -->
@@ -68,6 +68,7 @@ import { useAuthStore } from '../../stores/auth'
 import { useTheme } from '../../composables/useTheme'
 import { useRouter } from 'vue-router'
 import Avatar from '../base/Avatar.vue'
+import AppLogo from '../base/AppLogo.vue'
 
 defineEmits(['open-new-chat', 'open-create-group', 'open-profile'])
 

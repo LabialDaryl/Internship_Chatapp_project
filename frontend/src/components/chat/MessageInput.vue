@@ -1,88 +1,109 @@
 <template>
   <div class="border-t border-slate-800 bg-slate-900/40 relative">
     
-    <!-- @Mention Autocomplete Popup -->
-    <div
-      v-if="showMentionPopup && mentionCandidates.length > 0"
-      class="absolute bottom-full left-4 mb-2 w-64 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden z-30 animate-fade-in"
-    >
-      <div class="px-3 py-1.5 bg-slate-800/80 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700/60">
-        Mention Member
-      </div>
-      <div class="max-h-40 overflow-y-auto custom-scrollbar">
-        <div
-          v-for="user in mentionCandidates"
-          :key="user.id"
-          @click="insertMention(user.username || user.name)"
-          class="px-3 py-2 flex items-center space-x-2.5 hover:bg-violet-600/20 cursor-pointer transition-colors border-b border-slate-800/50 last:border-0"
-        >
-          <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-600 flex items-center justify-center text-[10px] font-bold text-white">
-            {{ user.name?.charAt(0) || user.username?.charAt(0) }}
-          </div>
-          <div class="min-w-0">
-            <p class="text-xs font-medium text-slate-200 truncate">{{ user.name || user.username }}</p>
-            <p class="text-[10px] text-slate-400">@{{ user.username }}</p>
+    <!-- Voice Recording Mode Bar -->
+    <VoiceMessageRecorder
+      v-if="chatStore.isRecordingVoice"
+      @send="handleVoiceSend"
+      @cancel="chatStore.isRecordingVoice = false"
+    />
+
+    <!-- Standard Text Input Bar -->
+    <template v-else>
+      <!-- @Mention Autocomplete Popup -->
+      <div
+        v-if="showMentionPopup && mentionCandidates.length > 0"
+        class="absolute bottom-full left-4 mb-2 w-64 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden z-30 animate-fade-in"
+      >
+        <div class="px-3 py-1.5 bg-slate-800/80 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700/60">
+          Mention Member
+        </div>
+        <div class="max-h-40 overflow-y-auto custom-scrollbar">
+          <div
+            v-for="user in mentionCandidates"
+            :key="user.id"
+            @click="insertMention(user.username || user.name)"
+            class="px-3 py-2 flex items-center space-x-2.5 hover:bg-violet-600/20 cursor-pointer transition-colors border-b border-slate-800/50 last:border-0"
+          >
+            <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-600 flex items-center justify-center text-[10px] font-bold text-white">
+              {{ user.name?.charAt(0) || user.username?.charAt(0) }}
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-slate-200 truncate">{{ user.name || user.username }}</p>
+              <p class="text-[10px] text-slate-400">@{{ user.username }}</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Replying Preview Top Bar -->
-    <div v-if="chatStore.replyingToMessage" class="px-4 py-2 bg-slate-800/80 border-b border-slate-700/60 flex items-center justify-between animate-fade-in text-xs">
-      <div class="flex items-center space-x-2 min-w-0">
-        <span class="text-violet-400 font-bold">💬 Replying to {{ chatStore.replyingToMessage.sender?.name || 'Message' }}:</span>
-        <span class="text-slate-300 truncate max-w-md italic">"{{ chatStore.replyingToMessage.body }}"</span>
+      <!-- Replying Preview Top Bar -->
+      <div v-if="chatStore.replyingToMessage" class="px-4 py-2 bg-slate-800/80 border-b border-slate-700/60 flex items-center justify-between animate-fade-in text-xs">
+        <div class="flex items-center space-x-2 min-w-0">
+          <span class="text-violet-400 font-bold">💬 Replying to {{ chatStore.replyingToMessage.sender?.name || 'Message' }}:</span>
+          <span class="text-slate-300 truncate max-w-md italic">"{{ chatStore.replyingToMessage.body }}"</span>
+        </div>
+        <button @click="chatStore.replyingToMessage = null" class="text-slate-400 hover:text-slate-200 transition-colors ml-2">
+          ✕
+        </button>
       </div>
-      <button @click="chatStore.replyingToMessage = null" class="text-slate-400 hover:text-slate-200 transition-colors ml-2">
-        ✕
-      </button>
-    </div>
 
-    <form @submit.prevent="handleSend" class="p-4 flex items-center gap-2.5">
-      
-      <!-- Attachment Paperclip Button -->
-      <button
-        type="button"
-        @click="triggerFileSelect"
-        :disabled="disabled || uploading"
-        title="Attach image or file"
-        class="p-2.5 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 transition-all disabled:opacity-50"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
-        </svg>
-      </button>
-      <input
-        ref="fileInput"
-        type="file"
-        class="hidden"
-        @change="handleFileChange"
-        accept="image/*,.pdf,.doc,.docx,.zip,.txt"
-      />
+      <form @submit.prevent="handleSend" class="p-4 flex items-center gap-2.5">
+        
+        <!-- Attachment Paperclip Button -->
+        <button
+          type="button"
+          @click="triggerFileSelect"
+          :disabled="disabled || uploading"
+          title="Attach image or file"
+          class="p-2.5 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 transition-all disabled:opacity-50"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
+          </svg>
+        </button>
+        <input
+          ref="fileInput"
+          type="file"
+          class="hidden"
+          @change="handleFileChange"
+          accept="image/*,.pdf,.doc,.docx,.zip,.txt"
+        />
 
-      <!-- Message Text Field -->
-      <input
-        type="text"
-        v-model="text"
-        @input="handleInput"
-        placeholder="Type a message... (Type @ to mention)"
-        class="input-base rounded-xl py-3 text-sm"
-        :disabled="disabled || uploading"
-      />
+        <!-- Microphone Button -->
+        <button
+          type="button"
+          @click="chatStore.isRecordingVoice = true"
+          :disabled="disabled || uploading"
+          title="Record voice note"
+          class="p-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 transition-all disabled:opacity-50"
+        >
+          🎙️
+        </button>
 
-      <!-- Send Button -->
-      <Button
-        type="submit"
-        variant="primary"
-        class="rounded-xl px-4 py-3 shadow-lg shadow-violet-600/20"
-        :disabled="!text.trim() || disabled || uploading"
-      >
-        <svg v-if="!uploading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-7-9-7-9 7 9 7zm0 0v-8"></path>
-        </svg>
-        <span v-else class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-      </Button>
-    </form>
+        <!-- Message Text Field -->
+        <input
+          type="text"
+          v-model="text"
+          @input="handleInput"
+          placeholder="Type a message... (Type @ to mention)"
+          class="input-base rounded-xl py-3 text-sm"
+          :disabled="disabled || uploading"
+        />
+
+        <!-- Send Button -->
+        <Button
+          type="submit"
+          variant="primary"
+          class="rounded-xl px-4 py-3 shadow-lg shadow-violet-600/20"
+          :disabled="!text.trim() || disabled || uploading"
+        >
+          <svg v-if="!uploading" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9-7-9-7-9 7 9 7zm0 0v-8"></path>
+          </svg>
+          <span v-else class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+        </Button>
+      </form>
+    </template>
   </div>
 </template>
 
@@ -90,6 +111,7 @@
 import { ref, computed } from 'vue'
 import { useChatStore } from '../../stores/chat'
 import messagesService from '../../services/messages'
+import VoiceMessageRecorder from './VoiceMessageRecorder.vue'
 import Button from '../base/Button.vue'
 
 const props = defineProps({
@@ -121,6 +143,10 @@ const mentionCandidates = computed(() => {
     (u.username && u.username.toLowerCase().includes(q))
   )
 })
+
+const handleVoiceSend = async (audioBlob) => {
+  await chatStore.sendVoiceNote(audioBlob)
+}
 
 const handleInput = (e) => {
   const val = text.value

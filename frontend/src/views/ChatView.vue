@@ -30,6 +30,7 @@
           :conversation="chatStore.activeConversation"
           @back="chatStore.activeConversation = null"
           @open-group-details="isGroupDetailsOpen = true"
+          @open-search="isSearchModalOpen = true"
         />
 
         <MessageList
@@ -90,6 +91,12 @@
       @close="isForwardModalOpen = false"
       @forward="handleForwardSubmit"
     />
+
+    <MessageSearchModal
+      :show="isSearchModalOpen"
+      @close="isSearchModalOpen = false"
+      @select="handleSearchSelect"
+    />
   </div>
 </template>
 
@@ -107,6 +114,7 @@ import CreateGroupModal from '../components/chat/CreateGroupModal.vue'
 import GroupDetailsModal from '../components/chat/GroupDetailsModal.vue'
 import ProfileModal from '../components/profile/ProfileModal.vue'
 import ForwardMessageModal from '../components/chat/ForwardMessageModal.vue'
+import MessageSearchModal from '../components/chat/MessageSearchModal.vue'
 import Button from '../components/base/Button.vue'
 import conversationsService from '../services/conversations'
 
@@ -118,6 +126,7 @@ const isGroupModalOpen = ref(false)
 const isGroupDetailsOpen = ref(false)
 const isProfileModalOpen = ref(false)
 const isForwardModalOpen = ref(false)
+const isSearchModalOpen = ref(false)
 const forwardTargetMessage = ref(null)
 
 onMounted(async () => {
@@ -132,6 +141,17 @@ const openForwardModal = (msg) => {
 
 const handleForwardSubmit = async ({ messageId, targetConversationId }) => {
   await chatStore.forwardMessage(messageId, targetConversationId)
+}
+
+const handleSearchSelect = (msg) => {
+  const el = document.getElementById(`message-${msg.id}`)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    el.classList.add('ring-2', 'ring-violet-500', 'bg-violet-600/20')
+    setTimeout(() => {
+      el.classList.remove('ring-2', 'ring-violet-500', 'bg-violet-600/20')
+    }, 2000)
+  }
 }
 
 const handleLeaveGroup = async (conversationId) => {

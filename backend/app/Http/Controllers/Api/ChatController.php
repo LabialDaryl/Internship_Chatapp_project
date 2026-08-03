@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\MessageDeleted;
 use App\Events\MessageRead;
+
+use App\Events\MessageReactionUpdated;
 use App\Events\MessageSent;
 use App\Events\MessageUpdated;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\MessageReaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -22,7 +25,7 @@ class ChatController extends Controller
         }
 
         $messages = $conversation->messages()
-            ->with(['sender', 'readReceipts', 'parent'])
+            ->with(['sender', 'readReceipts', 'parent', 'reactions'])
             ->latest()
             ->cursorPaginate(50);
 
@@ -44,7 +47,7 @@ class ChatController extends Controller
 
         $conversation->touch();
 
-        $loadedMessage = $message->load(['sender', 'parent']);
+        $loadedMessage = $message->load(['sender', 'parent', 'reactions']);
 
         try {
             broadcast(new MessageSent($loadedMessage))->toOthers();
@@ -81,7 +84,7 @@ class ChatController extends Controller
 
         $conversation->touch();
 
-        $loadedMessage = $message->load(['sender', 'parent']);
+        $loadedMessage = $message->load(['sender', 'parent', 'reactions']);
 
         try {
             broadcast(new MessageSent($loadedMessage))->toOthers();
@@ -90,6 +93,76 @@ class ChatController extends Controller
         }
 
         return response()->json(['data' => $loadedMessage], 201);
+    }
+
+    public function uploadVoiceNote(Request $request, Conversation $conversation): JsonResponse
+    {
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'audio' => 'required|file|max:10240',
+        ]);
+
+        $file = $request->file('audio');
+        $path = $file->store('voice_notes', 'public');
+        $url = asset('storage/' . $path);
+
+        $message = $conversation->messages()->create([
+            'sender_id' => $request->user()->id,
+            'parent_id' => $request->parent_id ?? null,
+            'body' => $url,
+            'type' => 'audio',
+        ]);
+
+        $conversation->touch();
+
+        $loadedMessage = $message->load(['sender', 'parent', 'reactions']);
+
+        try {
+            broadcast(new MessageSent($loadedMessage))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting MessageSent voice note failed: ' . $e->getMessage());
+        }
+
+        return response()->json(['data' => $loadedMessage], 201);
+    }
+
+    public function toggleReaction(Request $request, Conversation $conversation, Message $message): JsonResponse
+    {
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists()) {
+            abort(403);
+        }
+
+        $request->validate([
+            'emoji' => 'required|string|max:16',
+        ]);
+
+        $existing = MessageReaction::where('message_id', $message->id)
+            ->where('user_id', $request->user()->id)
+            ->where('emoji', $request->emoji)
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+        } else {
+            MessageReaction::create([
+                'message_id' => $message->id,
+                'user_id' => $request->user()->id,
+                'emoji' => $request->emoji,
+            ]);
+        }
+
+        try {
+            broadcast(new MessageReactionUpdated($message))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting MessageReactionUpdated failed: ' . $e->getMessage());
+        }
+
+        $updatedReactions = $message->reactions()->with('user:id,name,username')->get();
+
+        return response()->json(['data' => $updatedReactions]);
     }
 
     public function updateMessage(Request $request, Conversation $conversation, Message $message): JsonResponse
@@ -111,7 +184,7 @@ class ChatController extends Controller
             'is_edited' => true,
         ]);
 
-        $loadedMessage = $message->fresh(['sender', 'parent']);
+        $loadedMessage = $message->fresh(['sender', 'parent', 'reactions']);
 
         try {
             broadcast(new MessageUpdated($loadedMessage))->toOthers();
@@ -128,7 +201,6 @@ class ChatController extends Controller
             abort(403);
         }
 
-        // Allow sender or conversation admin to delete
         $isSender = $message->sender_id === $request->user()->id;
         $isAdmin = $conversation->participants()
             ->where('user_id', $request->user()->id)
@@ -173,7 +245,7 @@ class ChatController extends Controller
 
         $targetConversation->touch();
 
-        $loadedMessage = $forwardedMessage->load(['sender', 'parent']);
+        $loadedMessage = $forwardedMessage->load(['sender', 'parent', 'reactions']);
 
         try {
             broadcast(new MessageSent($loadedMessage))->toOthers();
@@ -182,6 +254,28 @@ class ChatController extends Controller
         }
 
         return response()->json(['data' => $loadedMessage], 201);
+    }
+
+    public function searchMessages(Request $request, Conversation $conversation): JsonResponse
+    {
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists()) {
+            abort(403);
+        }
+
+        $q = $request->query('query');
+        if (!$q) {
+            return response()->json([]);
+        }
+
+        $results = $conversation->messages()
+            ->where('is_deleted', false)
+            ->where('body', 'LIKE', '%' . $q . '%')
+            ->with(['sender'])
+            ->latest()
+            ->limit(20)
+            ->get();
+
+        return response()->json($results);
     }
 
     public function markRead(Request $request, Conversation $conversation): JsonResponse

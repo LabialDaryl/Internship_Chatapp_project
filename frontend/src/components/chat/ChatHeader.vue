@@ -35,9 +35,20 @@
       </div>
     </div>
 
-    <!-- Header Actions (Group Details Modal trigger) -->
-    <div v-if="conversation?.type === 'group'" class="flex items-center space-x-2">
+    <!-- Header Actions -->
+    <div class="flex items-center space-x-2">
+      <!-- In-Chat Search Trigger -->
       <button
+        @click="$emit('open-search')"
+        title="Search in chat"
+        class="p-2 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 border border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
+      >
+        <span>🔍 Search</span>
+      </button>
+
+      <!-- Group Details Modal trigger -->
+      <button
+        v-if="conversation?.type === 'group'"
         @click="$emit('open-group-details')"
         title="View group members & info"
         class="p-2 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 border border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
@@ -61,7 +72,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['back', 'open-group-details'])
+defineEmits(['back', 'open-group-details', 'open-search'])
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
@@ -76,7 +87,8 @@ const conversationName = computed(() => {
 const isOnline = computed(() => {
   if (!props.conversation || props.conversation.type === 'group') return false
   const other = props.conversation.participants?.find(p => p.user_id !== authStore.user?.id)
-  return !!other?.user?.is_online
+  if (!other) return false
+  return chatStore.isUserOnline(other.user_id) || !!other.user?.is_online
 })
 
 const typingStatus = computed(() => {

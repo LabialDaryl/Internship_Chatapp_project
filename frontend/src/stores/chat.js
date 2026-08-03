@@ -13,7 +13,10 @@ export const useChatStore = defineStore('chat', {
     messages: [],
     searchResults: [],
     typingUsers: {}, // { [conversationId]: ['Alice', 'Bob'] }
+    onlineUserIds: [], // Array of online user IDs
     subscribedChannels: new Set(),
+    isPresenceSubscribed: false,
+    isRecordingVoice: false,
     replyingToMessage: null,
     editingMessage: null,
     toastMessage: null,
@@ -34,6 +37,9 @@ export const useChatStore = defineStore('chat', {
     activeTypingUsers: (state) => {
       if (!state.activeConversation) return []
       return state.typingUsers[state.activeConversation.id] || []
+    },
+    isUserOnline: (state) => (userId) => {
+      return state.onlineUserIds.includes(userId)
     }
   },
 
@@ -51,10 +57,33 @@ export const useChatStore = defineStore('chat', {
       try {
         this.conversations = await conversationsService.getConversations()
         this.conversations.forEach(conv => this.subscribeToChannel(conv.id))
+        this.subscribePresence()
       } catch (err) {
         this.error = err.response?.data?.message || 'Failed to load conversations'
       } finally {
         this.loading = false
+      }
+    },
+
+    subscribePresence() {
+      if (this.isPresenceSubscribed) return
+      try {
+        const echo = getEcho()
+        echo.join('presence-chat')
+          .here((users) => {
+            this.onlineUserIds = users.map(u => u.id)
+          })
+          .joining((user) => {
+            if (!this.onlineUserIds.includes(user.id)) {
+              this.onlineUserIds.push(user.id)
+            }
+          })
+          .leaving((user) => {
+            this.onlineUserIds = this.onlineUserIds.filter(id => id !== user.id)
+          })
+        this.isPresenceSubscribed = true
+      } catch (e) {
+        // Presence channel fallback
       }
     },
 
@@ -73,6 +102,9 @@ export const useChatStore = defineStore('chat', {
         })
         .listen('.MessageDeleted', (e) => {
           this.handleMessageDeleted(e)
+        })
+        .listen('.MessageReactionUpdated', (e) => {
+          this.handleReactionUpdated(e)
         })
         .listen('.MessageRead', (e) => {
           this.handleMessageRead(e)
@@ -132,6 +164,15 @@ export const useChatStore = defineStore('chat', {
         if (idx !== -1) {
           this.messages[idx].body = 'This message was deleted'
           this.messages[idx].is_deleted = true
+        }
+      }
+    },
+
+    handleReactionUpdated({ id, conversation_id, reactions }) {
+      if (this.activeConversation && this.activeConversation.id === conversation_id) {
+        const idx = this.messages.findIndex(m => m.id === id)
+        if (idx !== -1) {
+          this.messages[idx].reactions = reactions
         }
       }
     },
@@ -238,6 +279,35 @@ export const useChatStore = defineStore('chat', {
       } catch (err) {
         this.messages = this.messages.filter(m => m.id !== tempId)
         this.error = err.response?.data?.message || 'Failed to send message'
+      }
+    },
+
+    async sendVoiceNote(audioBlob) {
+      if (!this.activeConversation) return
+
+      try {
+        const parentId = this.replyingToMessage?.id || null
+        const message = await messagesService.sendVoiceNote(this.activeConversation.id, audioBlob, parentId)
+        this.handleIncomingMessage(message)
+        this.replyingToMessage = null
+        this.isRecordingVoice = false
+        this.showToast('Voice note sent!')
+      } catch (err) {
+        this.error = err.response?.data?.message || 'Failed to send voice note'
+      }
+    },
+
+    async toggleReaction(messageId, emoji) {
+      if (!this.activeConversation) return
+
+      try {
+        const updatedReactions = await messagesService.toggleReaction(this.activeConversation.id, messageId, emoji)
+        const idx = this.messages.findIndex(m => m.id === messageId)
+        if (idx !== -1) {
+          this.messages[idx].reactions = updatedReactions
+        }
+      } catch (err) {
+        this.error = err.response?.data?.message || 'Failed to toggle reaction'
       }
     },
 
