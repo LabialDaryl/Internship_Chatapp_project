@@ -14,12 +14,12 @@
       <!-- Search Field -->
       <div class="relative">
         <input
+          ref="searchInputRef"
           v-model="query"
           @input="handleSearch"
           type="text"
           placeholder="Search message history..."
           class="w-full px-4 py-3 bg-slate-800 border border-slate-700/80 rounded-xl text-sm text-slate-100 focus:outline-none focus:border-violet-500"
-          autofocus
         />
         <span v-if="loading" class="absolute right-3 top-3 text-xs text-slate-400 animate-pulse">Searching...</span>
       </div>
@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useChatStore } from '../../stores/chat'
 import messagesService from '../../services/messages'
 
@@ -60,10 +60,22 @@ const props = defineProps({
 const emit = defineEmits(['close', 'select'])
 
 const chatStore = useChatStore()
+const searchInputRef = ref(null)
 const query = ref('')
 const results = ref([])
 const loading = ref(false)
 let debounceTimer = null
+
+watch(() => props.show, (val) => {
+  if (val) {
+    nextTick(() => {
+      searchInputRef.value?.focus()
+    })
+  } else {
+    query.value = ''
+    results.value = []
+  }
+})
 
 function handleSearch() {
   if (debounceTimer) clearTimeout(debounceTimer)
