@@ -14,6 +14,9 @@ export const useChatStore = defineStore('chat', {
     searchResults: [],
     typingUsers: {}, // { [conversationId]: ['Alice', 'Bob'] }
     subscribedChannels: new Set(),
+    replyingToMessage: null,
+    editingMessage: null,
+    toastMessage: null,
     loading: false,
     messagesLoading: false,
     error: null,
@@ -35,12 +38,18 @@ export const useChatStore = defineStore('chat', {
   },
 
   actions: {
+    showToast(text) {
+      this.toastMessage = text
+      setTimeout(() => {
+        if (this.toastMessage === text) this.toastMessage = null
+      }, 2500)
+    },
+
     async fetchConversations() {
       this.loading = true
       this.error = null
       try {
         this.conversations = await conversationsService.getConversations()
-        // Auto-subscribe to all user's conversations
         this.conversations.forEach(conv => this.subscribeToChannel(conv.id))
       } catch (err) {
         this.error = err.response?.data?.message || 'Failed to load conversations'
@@ -59,6 +68,12 @@ export const useChatStore = defineStore('chat', {
         .listen('.MessageSent', (e) => {
           this.handleIncomingMessage(e)
         })
+        .listen('.MessageUpdated', (e) => {
+          this.handleMessageUpdated(e)
+        })
+        .listen('.MessageDeleted', (e) => {
+          this.handleMessageDeleted(e)
+        })
         .listen('.MessageRead', (e) => {
           this.handleMessageRead(e)
         })
@@ -73,40 +88,51 @@ export const useChatStore = defineStore('chat', {
       const authStore = useAuthStore()
       const { playChime } = useNotificationSound()
 
-      // Play audio chime for non-sender messages
       if (message.sender_id !== authStore.user?.id) {
         playChime()
       }
 
-      // Update active thread
       if (this.activeConversation && this.activeConversation.id === message.conversation_id) {
-        // Check if message ID already exists
         const existingByIdx = this.messages.findIndex(m => m.id === message.id)
 
         if (existingByIdx !== -1) {
-          // Message already present, update content/sender info
           this.messages[existingByIdx] = message
         } else {
-          // Check if there is an optimistic pending message from current user with matching body
           const optimisticIdx = this.messages.findIndex(
             m => typeof m.id === 'string' && m.id.startsWith('temp-') && m.body === message.body
           )
 
           if (optimisticIdx !== -1) {
-            // Replace optimistic message with confirmed server message
             this.messages[optimisticIdx] = message
           } else {
-            // New message from another user or new device -> push
             this.messages.push(message)
           }
         }
       }
 
-      // Update snippet in conversation list
       const conv = this.conversations.find(c => c.id === message.conversation_id)
       if (conv) {
         conv.latestMessage = message
         conv.updated_at = message.created_at
+      }
+    },
+
+    handleMessageUpdated(updatedMessage) {
+      if (this.activeConversation && this.activeConversation.id === updatedMessage.conversation_id) {
+        const idx = this.messages.findIndex(m => m.id === updatedMessage.id)
+        if (idx !== -1) {
+          this.messages[idx] = updatedMessage
+        }
+      }
+    },
+
+    handleMessageDeleted({ id, conversation_id }) {
+      if (this.activeConversation && this.activeConversation.id === conversation_id) {
+        const idx = this.messages.findIndex(m => m.id === id)
+        if (idx !== -1) {
+          this.messages[idx].body = 'This message was deleted'
+          this.messages[idx].is_deleted = true
+        }
       }
     },
 
@@ -149,6 +175,8 @@ export const useChatStore = defineStore('chat', {
     async selectConversation(conversation) {
       this.activeConversation = conversation
       this.messages = []
+      this.replyingToMessage = null
+      this.editingMessage = null
       this.messagesLoading = true
 
       this.subscribeToChannel(conversation.id)
@@ -169,11 +197,15 @@ export const useChatStore = defineStore('chat', {
       if (!this.activeConversation || !body.trim()) return
 
       const authStore = useAuthStore()
+      const parentId = this.replyingToMessage?.id || null
+      const parentObj = this.replyingToMessage
       
       const tempId = `temp-${Date.now()}`
       const optimisticMessage = {
         id: tempId,
         conversation_id: this.activeConversation.id,
+        parent_id: parentId,
+        parent: parentObj,
         sender_id: authStore.user?.id,
         sender: authStore.user,
         body: body.trim(),
@@ -182,18 +214,16 @@ export const useChatStore = defineStore('chat', {
       }
 
       this.messages.push(optimisticMessage)
+      this.replyingToMessage = null
 
       try {
-        const actualMessage = await messagesService.sendMessage(this.activeConversation.id, body.trim())
+        const actualMessage = await messagesService.sendMessage(this.activeConversation.id, body.trim(), 'text', parentId)
         
-        // Check if actualMessage was already inserted by WebSocket broadcast before API response resolved
         const alreadyAddedIdx = this.messages.findIndex(m => m.id === actualMessage.id)
 
         if (alreadyAddedIdx !== -1) {
-          // Message already inserted by WebSocket -> remove temp optimistic placeholder
           this.messages = this.messages.filter(m => m.id !== tempId)
         } else {
-          // Replace temp placeholder with actual server message
           const tempIdx = this.messages.findIndex(m => m.id === tempId)
           if (tempIdx !== -1) {
             this.messages[tempIdx] = actualMessage
@@ -206,9 +236,51 @@ export const useChatStore = defineStore('chat', {
           conv.updated_at = new Date().toISOString()
         }
       } catch (err) {
-        // Rollback optimistic message on error
         this.messages = this.messages.filter(m => m.id !== tempId)
         this.error = err.response?.data?.message || 'Failed to send message'
+      }
+    },
+
+    async editMessage(messageId, newBody) {
+      if (!this.activeConversation || !newBody.trim()) return
+
+      try {
+        const updatedMessage = await messagesService.updateMessage(this.activeConversation.id, messageId, newBody.trim())
+        const idx = this.messages.findIndex(m => m.id === messageId)
+        if (idx !== -1) {
+          this.messages[idx] = updatedMessage
+        }
+        this.editingMessage = null
+        this.showToast('Message updated!')
+      } catch (err) {
+        this.error = err.response?.data?.message || 'Failed to edit message'
+      }
+    },
+
+    async deleteMessage(messageId) {
+      if (!this.activeConversation) return
+
+      try {
+        await messagesService.deleteMessage(this.activeConversation.id, messageId)
+        const idx = this.messages.findIndex(m => m.id === messageId)
+        if (idx !== -1) {
+          this.messages[idx].body = 'This message was deleted'
+          this.messages[idx].is_deleted = true
+        }
+        this.showToast('Message deleted')
+      } catch (err) {
+        this.error = err.response?.data?.message || 'Failed to delete message'
+      }
+    },
+
+    async forwardMessage(messageId, targetConversationId) {
+      if (!this.activeConversation) return
+
+      try {
+        await messagesService.forwardMessage(this.activeConversation.id, messageId, targetConversationId)
+        this.showToast('Message forwarded successfully!')
+      } catch (err) {
+        this.error = err.response?.data?.message || 'Failed to forward message'
       }
     },
 

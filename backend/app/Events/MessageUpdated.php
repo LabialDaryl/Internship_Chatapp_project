@@ -9,7 +9,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class MessageSent implements ShouldBroadcastNow
+class MessageUpdated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -29,7 +29,7 @@ class MessageSent implements ShouldBroadcastNow
 
     public function broadcastAs(): string
     {
-        return 'MessageSent';
+        return 'MessageUpdated';
     }
 
     public function broadcastWith(): array
@@ -59,6 +59,7 @@ class MessageSent implements ShouldBroadcastNow
             'is_edited' => $this->message->is_edited,
             'is_deleted' => $this->message->is_deleted,
             'created_at' => $this->message->created_at->toISOString(),
+            'updated_at' => $this->message->updated_at->toISOString(),
         ];
     }
 }

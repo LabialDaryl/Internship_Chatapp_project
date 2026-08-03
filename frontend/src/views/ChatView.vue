@@ -36,6 +36,7 @@
           :messages="chatStore.activeMessages"
           :loading="chatStore.messagesLoading"
           :isGroup="chatStore.activeConversation.type === 'group'"
+          @open-forward="openForwardModal"
         />
 
         <MessageInput @send="chatStore.sendMessage" />
@@ -81,6 +82,14 @@
       :show="isProfileModalOpen"
       @close="isProfileModalOpen = false"
     />
+
+    <ForwardMessageModal
+      :show="isForwardModalOpen"
+      :message="forwardTargetMessage"
+      :conversations="chatStore.conversations"
+      @close="isForwardModalOpen = false"
+      @forward="handleForwardSubmit"
+    />
   </div>
 </template>
 
@@ -97,6 +106,7 @@ import NewChatModal from '../components/chat/NewChatModal.vue'
 import CreateGroupModal from '../components/chat/CreateGroupModal.vue'
 import GroupDetailsModal from '../components/chat/GroupDetailsModal.vue'
 import ProfileModal from '../components/profile/ProfileModal.vue'
+import ForwardMessageModal from '../components/chat/ForwardMessageModal.vue'
 import Button from '../components/base/Button.vue'
 import conversationsService from '../services/conversations'
 
@@ -107,11 +117,22 @@ const isModalOpen = ref(false)
 const isGroupModalOpen = ref(false)
 const isGroupDetailsOpen = ref(false)
 const isProfileModalOpen = ref(false)
+const isForwardModalOpen = ref(false)
+const forwardTargetMessage = ref(null)
 
 onMounted(async () => {
   await chatStore.fetchConversations()
-  await chatStore.searchContacts('a') // pre-fetch contact list for group modal
+  await chatStore.searchContacts('a')
 })
+
+const openForwardModal = (msg) => {
+  forwardTargetMessage.value = msg
+  isForwardModalOpen.value = true
+}
+
+const handleForwardSubmit = async ({ messageId, targetConversationId }) => {
+  await chatStore.forwardMessage(messageId, targetConversationId)
+}
 
 const handleLeaveGroup = async (conversationId) => {
   try {

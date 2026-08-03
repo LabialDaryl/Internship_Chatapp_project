@@ -36,6 +36,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'send']);
     Route::post('/conversations/{conversation}/attachments', [ChatController::class, 'uploadAttachment']);
+    Route::put('/conversations/{conversation}/messages/{message}', [ChatController::class, 'updateMessage']);
+    Route::delete('/conversations/{conversation}/messages/{message}', [ChatController::class, 'destroyMessage']);
+    Route::post('/conversations/{conversation}/messages/{message}/forward', [ChatController::class, 'forwardMessage']);
     Route::post('/conversations/{conversation}/read', [ChatController::class, 'markRead']);
 
     // Contacts

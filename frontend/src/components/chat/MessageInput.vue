@@ -1,6 +1,18 @@
 <template>
-  <div class="p-4 border-t border-slate-800 bg-slate-900/40">
-    <form @submit.prevent="handleSend" class="flex items-center gap-2.5">
+  <div class="border-t border-slate-800 bg-slate-900/40">
+    
+    <!-- Replying Preview Top Bar -->
+    <div v-if="chatStore.replyingToMessage" class="px-4 py-2 bg-slate-800/80 border-b border-slate-700/60 flex items-center justify-between animate-fade-in text-xs">
+      <div class="flex items-center space-x-2 min-w-0">
+        <span class="text-violet-400 font-bold">💬 Replying to {{ chatStore.replyingToMessage.sender?.name || 'Message' }}:</span>
+        <span class="text-slate-300 truncate max-w-md italic">"{{ chatStore.replyingToMessage.body }}"</span>
+      </div>
+      <button @click="chatStore.replyingToMessage = null" class="text-slate-400 hover:text-slate-200 transition-colors ml-2">
+        ✕
+      </button>
+    </div>
+
+    <form @submit.prevent="handleSend" class="p-4 flex items-center gap-2.5">
       
       <!-- Attachment Paperclip Button -->
       <button
@@ -89,8 +101,10 @@ const handleFileChange = async (e) => {
 
   uploading.value = true
   try {
-    const message = await messagesService.sendAttachment(chatStore.activeConversation.id, file)
+    const parentId = chatStore.replyingToMessage?.id || null
+    const message = await messagesService.sendAttachment(chatStore.activeConversation.id, file, parentId)
     chatStore.handleIncomingMessage(message)
+    chatStore.replyingToMessage = null
   } catch (err) {
     chatStore.error = err.response?.data?.message || 'Failed to upload attachment'
   } finally {

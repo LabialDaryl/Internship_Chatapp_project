@@ -10,9 +10,17 @@ class Message extends Model
 {
     protected $fillable = [
         'conversation_id',
+        'parent_id',
         'sender_id',
         'body',
         'type',
+        'is_edited',
+        'is_deleted',
+    ];
+
+    protected $casts = [
+        'is_edited' => 'boolean',
+        'is_deleted' => 'boolean',
     ];
 
     public function conversation(): BelongsTo
@@ -23,6 +31,11 @@ class Message extends Model
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'parent_id')->with('sender');
     }
 
     public function readReceipts(): HasMany
