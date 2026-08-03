@@ -21,47 +21,10 @@
       v-for="msg in messages"
       :key="msg.id"
       :class="[
-        'flex flex-col max-w-[75%] space-y-1 relative group',
+        'flex flex-col max-w-[85%] space-y-1 relative group',
         isOwn(msg) ? 'ml-auto items-end' : 'mr-auto items-start'
       ]"
     >
-      <!-- 3-DOT OPTIONS DROPDOWN BUTTON & HOVER TOOLBAR -->
-      <div v-if="!msg.is_deleted" class="flex items-center space-x-1 relative">
-        
-        <!-- 3-Dot Options Trigger Button -->
-        <button
-          @click.stop="activeDropdownId = activeDropdownId === msg.id ? null : msg.id"
-          class="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-all opacity-0 group-hover:opacity-100"
-          title="Message options"
-        >
-          ⋮
-        </button>
-
-        <!-- Dropdown Popup Menu -->
-        <div
-          v-if="activeDropdownId === msg.id"
-          class="absolute top-6 z-30 w-36 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
-          :class="isOwn(msg) ? 'right-0' : 'left-0'"
-          @click.stop
-        >
-          <button @click="triggerReply(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
-            <span>💬</span> <span>Reply</span>
-          </button>
-          <button @click="copyText(msg.body)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
-            <span>📋</span> <span>Copy</span>
-          </button>
-          <button @click="triggerForward(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
-            <span>➡️</span> <span>Forward</span>
-          </button>
-          <button v-if="isOwn(msg) && msg.type === 'text'" @click="startEdit(msg)" class="w-full px-3 py-1.5 text-left hover:bg-amber-500/20 text-amber-300 flex items-center space-x-2">
-            <span>✏️</span> <span>Edit</span>
-          </button>
-          <button v-if="isOwn(msg) || isAdmin" @click="triggerDelete(msg)" class="w-full px-3 py-1.5 text-left hover:bg-rose-500/20 text-rose-300 flex items-center space-x-2">
-            <span>🗑️</span> <span>Delete</span>
-          </button>
-        </div>
-      </div>
-
       <!-- Sender Name (Group Chat) -->
       <span v-if="!isOwn(msg) && isGroup" class="text-[11px] text-violet-400 font-medium px-1">
         {{ msg.sender?.name || msg.sender?.username || 'User' }}
@@ -73,60 +36,131 @@
         <span class="italic text-slate-400">{{ msg.parent.body }}</span>
       </div>
 
-      <!-- DELETED MESSAGE STATE -->
-      <div v-if="msg.is_deleted" class="px-4 py-2.5 rounded-2xl text-xs italic text-slate-400 bg-slate-900/60 border border-slate-800">
-        🚫 This message was deleted
-      </div>
-
-      <!-- IN-LINE EDITING INPUT MODE -->
-      <div v-else-if="editingId === msg.id" class="w-full space-y-2">
-        <input
-          v-model="editBody"
-          type="text"
-          class="w-full px-3 py-2 bg-slate-800 border border-violet-500 rounded-xl text-sm text-slate-100 focus:outline-none"
-        />
-        <div class="flex justify-end space-x-2">
-          <button @click="editingId = null" class="px-2.5 py-1 text-xs text-slate-400 hover:text-slate-200">Cancel</button>
-          <button @click="saveEdit(msg.id)" class="px-3 py-1 text-xs bg-violet-600 text-white font-semibold rounded-lg">Save</button>
+      <!-- SIDE-BY-SIDE BUBBLE + 3-DOTS ACTION ROW -->
+      <div class="flex items-center gap-2 relative w-full" :class="isOwn(msg) ? 'justify-end' : 'justify-start'">
+        
+        <!-- 3-Dot Options Dropdown (LEFT side for own messages) -->
+        <div v-if="isOwn(msg) && !msg.is_deleted" class="relative">
+          <button
+            @click.stop="activeDropdownId = activeDropdownId === msg.id ? null : msg.id"
+            class="w-7 h-7 rounded-full text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition-all flex items-center justify-center text-sm opacity-0 group-hover:opacity-100"
+            title="Message options"
+          >
+            ⋮
+          </button>
+          
+          <!-- Options Dropdown Menu -->
+          <div
+            v-if="activeDropdownId === msg.id"
+            class="absolute top-0 right-8 z-30 w-36 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
+            @click.stop
+          >
+            <button @click="triggerReply(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+              <span>💬</span> <span>Reply</span>
+            </button>
+            <button @click="copyText(msg.body)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+              <span>📋</span> <span>Copy</span>
+            </button>
+            <button @click="triggerForward(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+              <span>➡️</span> <span>Forward</span>
+            </button>
+            <button v-if="msg.type === 'text'" @click="startEdit(msg)" class="w-full px-3 py-1.5 text-left hover:bg-amber-500/20 text-amber-300 flex items-center space-x-2">
+              <span>✏️</span> <span>Edit</span>
+            </button>
+            <button @click="triggerDelete(msg)" class="w-full px-3 py-1.5 text-left hover:bg-rose-500/20 text-rose-300 flex items-center space-x-2">
+              <span>🗑️</span> <span>Delete</span>
+            </button>
+          </div>
         </div>
-      </div>
 
-      <!-- IMAGE MESSAGE TYPE -->
-      <div v-else-if="msg.type === 'image'" class="overflow-hidden rounded-2xl border border-slate-700/60 shadow-lg group cursor-pointer relative" @click="openLightbox(msg.body)">
-        <img :src="msg.body" alt="Attached Image" class="max-w-sm max-h-64 object-cover rounded-2xl transform transition-transform group-hover:scale-105" />
-        <div class="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <span class="px-2.5 py-1 bg-slate-900/80 text-slate-200 text-xs rounded-lg backdrop-blur-sm">🔍 Expand</span>
+        <!-- MESSAGE BUBBLE / DELETED STATE / INLINE EDIT -->
+        <!-- DELETED MESSAGE STATE -->
+        <div v-if="msg.is_deleted" class="px-4 py-2.5 rounded-2xl text-xs italic text-slate-400 bg-slate-900/60 border border-slate-800">
+          🚫 This message was deleted
         </div>
-      </div>
 
-      <!-- FILE ATTACHMENT MESSAGE TYPE -->
-      <div v-else-if="msg.type === 'file'"
-        :class="[
-          'px-4 py-3 rounded-2xl text-sm flex items-center space-x-3 border shadow-sm',
-          isOwn(msg)
-            ? 'bg-violet-600/90 text-white border-violet-500/50 rounded-br-none'
-            : 'bg-slate-800 text-slate-100 border-slate-700/60 rounded-bl-none'
-        ]"
-      >
-        <div class="w-10 h-10 rounded-xl bg-slate-900/40 flex items-center justify-center text-violet-300 font-bold text-base">
-          📁
+        <!-- IN-LINE EDITING INPUT MODE -->
+        <div v-else-if="editingId === msg.id" class="w-full space-y-2">
+          <input
+            v-model="editBody"
+            type="text"
+            class="w-full px-3 py-2 bg-slate-800 border border-violet-500 rounded-xl text-sm text-slate-100 focus:outline-none"
+          />
+          <div class="flex justify-end space-x-2">
+            <button @click="editingId = null" class="px-2.5 py-1 text-xs text-slate-400 hover:text-slate-200">Cancel</button>
+            <button @click="saveEdit(msg.id)" class="px-3 py-1 text-xs bg-violet-600 text-white font-semibold rounded-lg">Save</button>
+          </div>
         </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-xs font-semibold truncate">{{ getFileName(msg.body) }}</p>
-          <a :href="msg.body" target="_blank" download class="text-[11px] text-violet-300 underline hover:text-white transition-colors">Download Attachment</a>
-        </div>
-      </div>
 
-      <!-- STANDARD TEXT MESSAGE TYPE (WITH @MENTION HIGHLIGHTING) -->
-      <div v-else
-        :class="[
-          'px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm break-words',
-          isOwn(msg)
-            ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-br-none shadow-violet-600/20'
-            : 'bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700/50'
-        ]"
-      >
-        <span v-html="renderMentions(msg.body)"></span>
+        <!-- IMAGE MESSAGE TYPE -->
+        <div v-else-if="msg.type === 'image'" class="overflow-hidden rounded-2xl border border-slate-700/60 shadow-lg group cursor-pointer relative" @click="openLightbox(msg.body)">
+          <img :src="msg.body" alt="Attached Image" class="max-w-sm max-h-64 object-cover rounded-2xl transform transition-transform group-hover:scale-105" />
+          <div class="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <span class="px-2.5 py-1 bg-slate-900/80 text-slate-200 text-xs rounded-lg backdrop-blur-sm">🔍 Expand</span>
+          </div>
+        </div>
+
+        <!-- FILE ATTACHMENT MESSAGE TYPE -->
+        <div v-else-if="msg.type === 'file'"
+          :class="[
+            'px-4 py-3 rounded-2xl text-sm flex items-center space-x-3 border shadow-sm',
+            isOwn(msg)
+              ? 'bg-violet-600/90 text-white border-violet-500/50 rounded-br-none'
+              : 'bg-slate-800 text-slate-100 border-slate-700/60 rounded-bl-none'
+          ]"
+        >
+          <div class="w-10 h-10 rounded-xl bg-slate-900/40 flex items-center justify-center text-violet-300 font-bold text-base">
+            📁
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-semibold truncate">{{ getFileName(msg.body) }}</p>
+            <a :href="msg.body" target="_blank" download class="text-[11px] text-violet-300 underline hover:text-white transition-colors">Download Attachment</a>
+          </div>
+        </div>
+
+        <!-- STANDARD TEXT MESSAGE TYPE (WITH @MENTION HIGHLIGHTING) -->
+        <div v-else
+          :class="[
+            'px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm break-words',
+            isOwn(msg)
+              ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-br-none shadow-violet-600/20'
+              : 'bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700/50'
+          ]"
+        >
+          <span v-html="renderMentions(msg.body)"></span>
+        </div>
+
+        <!-- 3-Dot Options Dropdown (RIGHT side for incoming messages) -->
+        <div v-if="!isOwn(msg) && !msg.is_deleted" class="relative">
+          <button
+            @click.stop="activeDropdownId = activeDropdownId === msg.id ? null : msg.id"
+            class="w-7 h-7 rounded-full text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition-all flex items-center justify-center text-sm opacity-0 group-hover:opacity-100"
+            title="Message options"
+          >
+            ⋮
+          </button>
+          
+          <!-- Options Dropdown Menu -->
+          <div
+            v-if="activeDropdownId === msg.id"
+            class="absolute top-0 left-8 z-30 w-36 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
+            @click.stop
+          >
+            <button @click="triggerReply(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+              <span>💬</span> <span>Reply</span>
+            </button>
+            <button @click="copyText(msg.body)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+              <span>📋</span> <span>Copy</span>
+            </button>
+            <button @click="triggerForward(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+              <span>➡️</span> <span>Forward</span>
+            </button>
+            <button v-if="isAdmin" @click="triggerDelete(msg)" class="w-full px-3 py-1.5 text-left hover:bg-rose-500/20 text-rose-300 flex items-center space-x-2">
+              <span>🗑️</span> <span>Delete</span>
+            </button>
+          </div>
+        </div>
+
       </div>
 
       <!-- Time, Edited & Read Status -->
@@ -234,7 +268,6 @@ const handleDeleteConfirm = async ({ messageId, type }) => {
 
 const renderMentions = (text) => {
   if (!text) return ''
-  // Regex to highlight @username mentions in vibrant pill badge
   return text.replace(/@([a-zA-Z0-9_-]+)/g, '<span class="px-1.5 py-0.5 rounded-md bg-violet-600/30 border border-violet-500/40 text-violet-200 font-semibold text-xs inline-block">@$1</span>')
 }
 
