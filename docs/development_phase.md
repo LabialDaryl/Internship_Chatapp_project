@@ -2166,10 +2166,11 @@ npm run dev
 | **Phase 6** | Advanced Features & Seeders | Database Seeder (`DatabaseSeeder.php`), Image/File Attachments, Image Lightbox, `CreateGroupModal`, `GroupDetailsModal`, `ProfileModal`, Audio Chimes | ✅ Completed |
 | **Phase 7** | Advanced Message Actions | Quoted Reply, In-Line Edit (`(edited)` tag), Soft Deletions (Delete for Everyone vs Delete for Me), `ForwardMessageModal`, Side 3-Dot Options Button, `@Mention` Autocomplete & Pill Badges | ✅ Completed |
 | **Phase 8** | Reactions, Voice & Presence | Emoji Reactions (`message_reactions` table, `MessageReactionUpdated` event), `VoiceMessageRecorder.vue` (MediaRecorder timer & wave visualizer), `AudioPlayerBubble.vue`, Echo Presence Channel (`presence-chat`), `MessageSearchModal.vue` | ✅ Completed |
+| **Phase 9** | WebRTC Video/Audio Calling | WebRTC Calling Engine (`services/webrtc.js`), Reverb Signaling (`CallSignalSent` event), `IncomingCallModal.vue` (ringtone chime, Accept/Decline), `ActiveCallModal.vue` (video stream, mic mute, camera toggle, screen share), `call_logs` table | ✅ Completed |
 
 ---
 
-## Phase 8 Technical Architecture & Implementation Reference
+## Phase 9 Technical Architecture & Implementation Reference
 
 ### 1. Database Seeder & Storage Link (`backend/database/seeders/DatabaseSeeder.php`)
 - **Pre-populated Accounts** (Password: `password`):
@@ -2179,19 +2180,20 @@ npm run dev
   - Charlie Davis (`charlie@example.com`, `@charlie`)
 - **Storage Link**: Connected `backend/public/storage` to `backend/storage/app/public` via `php artisan storage:link`.
 
-### 2. Media, Voice & Attachment Sharing API
-- **Endpoints**:
+### 2. Media, Voice & WebRTC Calling API
+- **WebRTC Calling**:
+  - WebRTC Peer Connection Manager (`services/webrtc.js`) utilizing Google STUN servers.
+  - Reverb Signaling Endpoint: `POST /api/conversations/{conversation}/call-signal` relaying SDP offers, SDP answers, ICE candidates, and call control events (`CallSignalSent`).
+  - Call Log Storage: `POST /api/conversations/{conversation}/call-logs` logging completed, missed, and declined call records in `call_logs` table with in-chat system log cards.
+- **Media Attachments**:
   - `POST /api/conversations/{conversation}/attachments` (Images & documents up to 10MB)
   - `POST /api/conversations/{conversation}/voice-notes` (Compressed `.webm` / `.mp3` audio files)
-- **Frontend Rendering**:
-  - `MessageList.vue`: Renders inline image cards with lightbox modal, downloadable file cards, and `AudioPlayerBubble.vue` for voice notes.
-  - `VoiceMessageRecorder.vue`: MediaRecorder interface with timer, animated wave visualizer, and Send/Cancel controls.
 
-### 3. Emoji Reactions & Message Interactions
-- **Emoji Reactions**: `POST /api/conversations/{conversation}/messages/{message}/reactions` toggling emojis (❤️, 😂, 👍, 🔥, 😮, 😢). Broadcasts `MessageReactionUpdated` via Laravel Reverb WebSockets.
-- **Message Actions**: Side 3-dot options menu (`⋮`) for Reply, Copy, Forward, Edit, and Delete (Delete for Everyone vs Delete for Me modal).
-- **Mentions**: Typing `@` triggers autocomplete popup; mentions render in vibrant violet pill badges.
-- **In-Chat Search**: `GET /api/conversations/{conversation}/search-messages` modal searching conversation history with auto-scroll and highlight animation.
+### 3. Calling UI Modals & Interaction Controls
+- **`IncomingCallModal.vue`**: Pop-up window displaying caller avatar, call type (Audio/Video), Accept and Decline controls, and chime.
+- **`ActiveCallModal.vue`**: Full-screen or picture-in-picture video call modal displaying remote video feed, local self-view preview, timer, Mic Mute, Camera Toggle, Screen Share, and End Call controls.
+- **Emoji Reactions & Actions**: Side 3-dot options menu (`⋮`) for Reply, Copy, Forward, Edit, Delete, and emoji reactions (❤️, 😂, 👍, 🔥, 😮, 😢).
+- **Mentions & Search**: `@mention` autocomplete with pill badges and `MessageSearchModal.vue` in-chat search.
 
 ### 4. Real-Time WebSockets & Live Presence Architecture
 - **Broadcasting Engine**: Laravel Reverb listening on port `8080`.
@@ -2225,6 +2227,8 @@ npm run dev
 | `DELETE` | `/api/conversations/{id}/messages/{msg}` | Delete message | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/messages/{msg}/forward` | Forward message to target chat | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/messages/{msg}/reactions` | Toggle emoji reaction | `auth:sanctum` |
+| `POST` | `/api/conversations/{id}/call-signal` | Relay WebRTC SDP / ICE signals | `auth:sanctum` |
+| `POST` | `/api/conversations/{id}/call-logs` | Record call history log | `auth:sanctum` |
 | `GET` | `/api/conversations/{id}/search-messages` | Search message history in chat | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/read` | Mark thread as read | `auth:sanctum` |
 | `POST` | `/api/broadcasting/auth` | WebSocket channel authorization | `auth:sanctum` |
@@ -2251,5 +2255,5 @@ npm run dev
 ```
 
 > **Repository**: `LabialDaryl/Internship_Chatapp_project` (Branch: `main`)  
-> **Status**: All 8 Development Phases Fully Completed, Audited, Tested & Operational.
+> **Status**: All 9 Development Phases Fully Completed, Audited, Tested & Operational.
 
