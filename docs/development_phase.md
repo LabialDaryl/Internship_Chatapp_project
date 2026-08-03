@@ -2164,10 +2164,12 @@ npm run dev
 | **Phase 4** | Vue Views & Navigation | `ChatView.vue`, `LoginView.vue`, `RegisterView.vue`, Vue Router Auth Guards, Pinia Chat Store (`chat.js`, `auth.js`) | ✅ Completed |
 | **Phase 5** | Real-Time WebSockets | Laravel Reverb server (`reverb:start`), Laravel Echo integration, `X-Socket-ID` header interceptor, State Reconciliation & Deduplication | ✅ Completed |
 | **Phase 6** | Advanced Features & Seeders | Database Seeder (`DatabaseSeeder.php`), Image/File Attachments, Image Lightbox, `CreateGroupModal`, `GroupDetailsModal`, `ProfileModal`, Audio Chimes | ✅ Completed |
+| **Phase 7** | Advanced Message Actions | Quoted Reply, In-Line Edit (`(edited)` tag), Soft Deletions (Delete for Everyone vs Delete for Me), `ForwardMessageModal`, Side 3-Dot Options Button, `@Mention` Autocomplete & Pill Badges | ✅ Completed |
+| **Phase 8** | Reactions, Voice & Presence | Emoji Reactions (`message_reactions` table, `MessageReactionUpdated` event), `VoiceMessageRecorder.vue` (MediaRecorder timer & wave visualizer), `AudioPlayerBubble.vue`, Echo Presence Channel (`presence-chat`), `MessageSearchModal.vue` | ✅ Completed |
 
 ---
 
-## Phase 6 Technical Architecture & Implementation Reference
+## Phase 8 Technical Architecture & Implementation Reference
 
 ### 1. Database Seeder & Storage Link (`backend/database/seeders/DatabaseSeeder.php`)
 - **Pre-populated Accounts** (Password: `password`):
@@ -2177,24 +2179,25 @@ npm run dev
   - Charlie Davis (`charlie@example.com`, `@charlie`)
 - **Storage Link**: Connected `backend/public/storage` to `backend/storage/app/public` via `php artisan storage:link`.
 
-### 2. Media & Attachment Sharing API
-- **Endpoint**: `POST /api/conversations/{conversation}/attachments`
-- **Validation**: Max 10MB file limit. Auto-detects image MIME extensions (`jpg`, `png`, `gif`, `webp`, `svg`) to set `type: 'image'` vs `type: 'file'`.
+### 2. Media, Voice & Attachment Sharing API
+- **Endpoints**:
+  - `POST /api/conversations/{conversation}/attachments` (Images & documents up to 10MB)
+  - `POST /api/conversations/{conversation}/voice-notes` (Compressed `.webm` / `.mp3` audio files)
 - **Frontend Rendering**:
-  - `MessageList.vue`: Renders inline image cards with hover zoom and click-to-expand lightbox modal. Renders downloadable file cards with paperclip icons.
-  - `MessageInput.vue`: Paperclip button with file picker handling multipart/form-data upload.
+  - `MessageList.vue`: Renders inline image cards with lightbox modal, downloadable file cards, and `AudioPlayerBubble.vue` for voice notes.
+  - `VoiceMessageRecorder.vue`: MediaRecorder interface with timer, animated wave visualizer, and Send/Cancel controls.
 
-### 3. Group Chat & User Profile Modals
-- **`CreateGroupModal.vue`**: Contact multi-selection checklist to initialize group conversations.
-- **`GroupDetailsModal.vue`**: Slide-out info panel displaying group participants, admin badges, real-time presence indicators, and leave conversation handler.
-- **`ProfileModal.vue`**: Tabbed modal for editing display name, username, email address, and security password verification.
-- **`useNotificationSound.js`**: Web Audio API oscillator chime for incoming messages.
+### 3. Emoji Reactions & Message Interactions
+- **Emoji Reactions**: `POST /api/conversations/{conversation}/messages/{message}/reactions` toggling emojis (❤️, 😂, 👍, 🔥, 😮, 😢). Broadcasts `MessageReactionUpdated` via Laravel Reverb WebSockets.
+- **Message Actions**: Side 3-dot options menu (`⋮`) for Reply, Copy, Forward, Edit, and Delete (Delete for Everyone vs Delete for Me modal).
+- **Mentions**: Typing `@` triggers autocomplete popup; mentions render in vibrant violet pill badges.
+- **In-Chat Search**: `GET /api/conversations/{conversation}/search-messages` modal searching conversation history with auto-scroll and highlight animation.
 
-### 4. Real-Time WebSockets & Deduplication Architecture
+### 4. Real-Time WebSockets & Live Presence Architecture
 - **Broadcasting Engine**: Laravel Reverb listening on port `8080`.
 - **Sanctum Authorizer**: Dynamic authorizer in `src/api/echo.js` sending `Authorization: Bearer <token>` via Axios for `/api/broadcasting/auth`.
 - **Anti-Duplication**: `src/api/client.js` injects `X-Socket-ID` header into all HTTP requests so `broadcast(...)->toOthers()` suppresses echoing back to the sender.
-- **State Reconciliation**: `src/stores/chat.js` replaces `temp-*` optimistic placeholders with server-confirmed IDs upon HTTP resolution or WebSocket broadcast arrival.
+- **Presence Tracking**: Echo presence channel `presence-chat` tracking online user IDs in real-time with green status badges and typing banners (`"Alice is typing..."`).
 
 ---
 
@@ -2210,9 +2213,19 @@ npm run dev
 | `POST` | `/api/logout` | Revoke token & mark offline | `auth:sanctum` |
 | `GET` | `/api/conversations` | List user's conversations | `auth:sanctum` |
 | `POST` | `/api/conversations` | Create direct/group chat | `auth:sanctum` |
+| `GET` | `/api/conversations/{id}` | Get conversation details | `auth:sanctum` |
+| `POST` | `/api/conversations/{id}/participants` | Add participant to group | `auth:sanctum` |
+| `DELETE` | `/api/conversations/{id}/participants/{user}` | Remove participant from group | `auth:sanctum` |
+| `POST` | `/api/conversations/{id}/leave` | Leave group conversation | `auth:sanctum` |
 | `GET` | `/api/conversations/{id}/messages` | Get message history | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/messages` | Send text message | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/attachments` | Upload image/file attachment | `auth:sanctum` |
+| `POST` | `/api/conversations/{id}/voice-notes` | Upload audio voice message | `auth:sanctum` |
+| `PUT` | `/api/conversations/{id}/messages/{msg}` | Edit message body | `auth:sanctum` |
+| `DELETE` | `/api/conversations/{id}/messages/{msg}` | Delete message | `auth:sanctum` |
+| `POST` | `/api/conversations/{id}/messages/{msg}/forward` | Forward message to target chat | `auth:sanctum` |
+| `POST` | `/api/conversations/{id}/messages/{msg}/reactions` | Toggle emoji reaction | `auth:sanctum` |
+| `GET` | `/api/conversations/{id}/search-messages` | Search message history in chat | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/read` | Mark thread as read | `auth:sanctum` |
 | `POST` | `/api/broadcasting/auth` | WebSocket channel authorization | `auth:sanctum` |
 | `GET` | `/api/contacts/search` | Search users by query | `auth:sanctum` |
@@ -2238,5 +2251,5 @@ npm run dev
 ```
 
 > **Repository**: `LabialDaryl/Internship_Chatapp_project` (Branch: `main`)  
-> **Status**: All 6 Development Phases Fully Completed, Tested & Operational.
+> **Status**: All 8 Development Phases Fully Completed, Audited, Tested & Operational.
 
