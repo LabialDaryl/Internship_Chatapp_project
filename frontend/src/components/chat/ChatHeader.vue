@@ -30,7 +30,9 @@
           </span>
           <span v-else-if="conversation?.type === 'group'" class="flex items-center gap-1">
             <span>{{ conversation.participants?.length || 0 }} members</span>
-            <span v-if="isOnline" class="text-emerald-400 font-medium ml-1">• Active now</span>
+            <span v-if="onlineOtherCount > 0" class="text-emerald-400 font-medium ml-1">
+              • {{ onlineOtherCount === 1 ? 'Active now' : `${onlineOtherCount} active now` }}
+            </span>
           </span>
           <span v-else-if="isOnline" class="text-emerald-400 font-medium">Online</span>
           <span v-else class="text-slate-500">Offline</span>
@@ -114,11 +116,16 @@ const conversationName = computed(() => {
   return other?.user?.name || (other?.user?.username ? `@${other.user.username}` : 'Chat')
 })
 
+const onlineOtherCount = computed(() => {
+  if (!props.conversation || props.conversation.type !== 'group') return 0
+  const otherParticipants = props.conversation.participants?.filter(p => p.user_id !== authStore.user?.id) || []
+  return otherParticipants.filter(p => chatStore.isUserOnline(p.user_id) || !!p.user?.is_online).length
+})
+
 const isOnline = computed(() => {
   if (!props.conversation) return false
   if (props.conversation.type === 'group') {
-    const participants = props.conversation.participants || []
-    return participants.some(p => chatStore.isUserOnline(p.user_id) || !!p.user?.is_online)
+    return onlineOtherCount.value > 0
   }
   const other = props.conversation.participants?.find(p => p.user_id !== authStore.user?.id)
   if (!other) return false

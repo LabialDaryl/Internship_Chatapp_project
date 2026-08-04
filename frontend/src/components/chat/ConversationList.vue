@@ -114,8 +114,8 @@ const getConversationName = (conv) => {
 const isOtherUserOnline = (conv) => {
   if (!conv) return false
   if (conv.type === 'group') {
-    const participants = conv.participants || []
-    return participants.some(p => chatStore.isUserOnline(p.user_id) || !!p.user?.is_online)
+    const otherParticipants = conv.participants?.filter(p => p.user_id !== authStore.user?.id) || []
+    return otherParticipants.some(p => chatStore.isUserOnline(p.user_id) || !!p.user?.is_online)
   }
   const other = conv.participants?.find(p => p.user_id !== authStore.user?.id)
   if (!other) return false
