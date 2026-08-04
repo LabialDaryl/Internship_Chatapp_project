@@ -1,5 +1,5 @@
 <template>
-  <div class="flex-1 flex flex-col min-h-0 relative overflow-hidden bg-slate-950">
+  <div class="flex-1 flex flex-col min-h-0 relative overflow-hidden bg-slate-100 dark:bg-slate-950">
     
     <!-- Top Pinned Messages Header Banner -->
     <PinnedMessagesBanner
