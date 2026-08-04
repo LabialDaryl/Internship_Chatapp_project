@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Vue 3 Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - chatapp-network
+
+  # Laravel 11 Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      APP_ENV: production
+      APP_DEBUG: "false"
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: chatapp
+      DB_USERNAME: chatapp_user
+      DB_PASSWORD: chatapp_password
+    depends_on:
+      - postgres
+    networks:
+      - chatapp-network
+
+  # PostgreSQL Database Container
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: chatapp
+      POSTGRES_USER: chatapp_user
+      POSTGRES_PASSWORD: chatapp_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - chatapp-network
+
+networks:
+  chatapp-network:
+    driver: bridge
+
+volumes:
+  pgdata:

@@ -36,15 +36,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Messages & Calling
     Route::get('/conversations/{conversation}/messages', [ChatController::class, 'messages']);
     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'send']);
-    Route::post('/conversations/{conversation}/attachments', [ChatController::class, 'uploadAttachment']);
-    Route::post('/conversations/{conversation}/voice-notes', [ChatController::class, 'uploadVoiceNote']);
     Route::put('/conversations/{conversation}/messages/{message}', [ChatController::class, 'updateMessage']);
     Route::delete('/conversations/{conversation}/messages/{message}', [ChatController::class, 'destroyMessage']);
     Route::post('/conversations/{conversation}/messages/{message}/forward', [ChatController::class, 'forwardMessage']);
     Route::post('/conversations/{conversation}/messages/{message}/reactions', [ChatController::class, 'toggleReaction']);
     Route::post('/conversations/{conversation}/messages/{message}/pin', [ChatController::class, 'togglePinMessage']);
+    Route::post('/conversations/{conversation}/messages/{message}/deliver', [ChatController::class, 'markDelivered']);
     Route::get('/messages/{message}/read-receipts', [ChatController::class, 'getMessageReadReceipts']);
     Route::get('/conversations/{conversation}/media', [ChatController::class, 'getConversationMedia']);
+    Route::post('/conversations/{conversation}/attachments', [ChatController::class, 'uploadAttachment']);
+    Route::post('/conversations/{conversation}/voice-notes', [ChatController::class, 'uploadVoiceNote']);
     Route::post('/conversations/{conversation}/call-signal', [ChatController::class, 'sendCallSignal']);
     Route::post('/conversations/{conversation}/call-logs', [ChatController::class, 'logCall']);
     Route::get('/conversations/{conversation}/search-messages', [ChatController::class, 'searchMessages']);
@@ -56,4 +57,3 @@ Route::middleware('auth:sanctum')->group(function () {
     // Real-Time Broadcasting Authentication
     \Illuminate\Support\Facades\Broadcast::routes();
 });
-

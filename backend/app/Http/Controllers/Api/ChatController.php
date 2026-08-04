@@ -430,4 +430,19 @@ class ChatController extends Controller
 
         return response()->json(['message' => 'Messages marked as read']);
     }
+
+    public function markDelivered(Request $request, Conversation $conversation, Message $message): JsonResponse
+    {
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists()) {
+            abort(403);
+        }
+
+        try {
+            broadcast(new \App\Events\MessageDelivered($conversation->id, $message->id, $request->user()->id))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting MessageDelivered failed: ' . $e->getMessage());
+        }
+
+        return response()->json(['message' => 'Message marked as delivered']);
+    }
 }

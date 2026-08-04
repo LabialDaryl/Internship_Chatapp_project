@@ -104,5 +104,14 @@ export default {
   async markAsRead(conversationId) {
     const response = await client.post(`/conversations/${conversationId}/read`)
     return response.data
+  },
+
+  async markAsDelivered(conversationId, messageId) {
+    try {
+      const response = await client.post(`/conversations/${conversationId}/messages/${messageId}/deliver`)
+      return response.data
+    } catch {
+      return null
+    }
   }
 }
