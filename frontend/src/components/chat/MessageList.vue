@@ -235,10 +235,15 @@
           <button
             v-if="isOwn(msg)"
             @click="openReadReceiptsModal(msg.id)"
-            class="text-[10px] text-violet-400 font-bold hover:underline"
-            title="View read status"
+            :class="[
+              'text-[10px] font-bold hover:underline transition-colors flex items-center space-x-1',
+              getReadCount(msg) >= totalGroupParticipants ? 'text-emerald-400 font-extrabold' : getReadCount(msg) > 0 ? 'text-violet-400 font-bold' : 'text-slate-500'
+            ]"
+            :title="`Seen by ${getReadCount(msg)} member(s)`"
           >
-            ✓✓
+            <span v-if="getReadCount(msg) >= totalGroupParticipants">✓✓ All</span>
+            <span v-else-if="getReadCount(msg) > 0">✓✓ {{ getReadCount(msg) }}</span>
+            <span v-else>✓</span>
           </button>
         </div>
       </div>
@@ -313,6 +318,19 @@ const deleteTargetMsg = ref(null)
 
 const showReadReceiptsModal = ref(false)
 const selectedReceiptMessageId = ref(null)
+
+const totalGroupParticipants = computed(() => {
+  if (!chatStore.activeConversation) return 1
+  const parts = chatStore.activeConversation.participants || []
+  return Math.max(1, parts.length - 1)
+})
+
+const getReadCount = (msg) => {
+  const receipts = msg.readReceipts || msg.read_receipts || []
+  if (!Array.isArray(receipts)) return 0
+  const uniqueUsers = new Set(receipts.map(r => r.user_id).filter(id => id !== authStore.user?.id))
+  return uniqueUsers.size
+}
 
 const pinnedMessages = computed(() => {
   return props.messages.filter(m => m.is_pinned && !m.is_deleted)

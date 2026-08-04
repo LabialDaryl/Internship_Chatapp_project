@@ -146,6 +146,11 @@ export const useChatStore = defineStore('chat', {
             this.messages.push(message)
           }
         }
+
+        // Auto mark as read if user is actively viewing this conversation
+        if (message.sender_id !== authStore.user?.id) {
+          messagesService.markAsRead(message.conversation_id)
+        }
       }
 
       const conv = this.conversations.find(c => c.id === message.conversation_id)
@@ -212,9 +217,16 @@ export const useChatStore = defineStore('chat', {
     handleMessageRead({ conversation_id, user_id }) {
       if (this.activeConversation && this.activeConversation.id === conversation_id) {
         this.messages.forEach(m => {
-          if (!m.read_receipts) m.read_receipts = []
-          if (!m.read_receipts.some(r => r.user_id === user_id)) {
-            m.read_receipts.push({ user_id, read_at: new Date().toISOString() })
+          if (!m.readReceipts) m.readReceipts = []
+          if (!m.read_receipts) m.read_receipts = m.readReceipts
+          
+          const exists = m.readReceipts.some(r => r.user_id === user_id)
+          if (!exists) {
+            const receiptObj = { user_id, read_at: new Date().toISOString() }
+            m.readReceipts.push(receiptObj)
+            if (m.read_receipts !== m.readReceipts) {
+              m.read_receipts.push(receiptObj)
+            }
           }
         })
       }
