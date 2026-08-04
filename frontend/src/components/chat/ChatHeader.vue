@@ -1,6 +1,6 @@
 <template>
-  <div class="h-16 px-6 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/60 flex items-center justify-between">
-    <div class="flex items-center gap-3">
+  <div class="h-16 px-6 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/60 flex items-center justify-between z-20">
+    <div class="flex items-center gap-3 min-w-0">
       <!-- Back Button for Mobile -->
       <button
         @click="$emit('back')"
@@ -20,11 +20,11 @@
         :isOnline="isOnline"
       />
 
-      <div>
-        <h2 class="text-base font-bold text-slate-900 dark:text-slate-100 leading-tight">
+      <div class="min-w-0 flex-1">
+        <h2 class="text-base font-bold text-slate-900 dark:text-slate-100 leading-tight truncate">
           {{ conversationName }}
         </h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400">
+        <p class="text-xs text-slate-500 dark:text-slate-400 truncate">
           <span v-if="typingStatus" class="text-violet-600 dark:text-violet-400 font-medium animate-pulse">
             {{ typingStatus }}
           </span>
@@ -40,8 +40,8 @@
       </div>
     </div>
 
-    <!-- Header Actions -->
-    <div class="flex items-center space-x-2">
+    <!-- Header Quick Actions & 3-Dot Options Menu -->
+    <div class="flex items-center space-x-2 relative">
       <!-- Audio Call Button -->
       <button
         @click="$emit('start-call', 'audio')"
@@ -60,48 +60,67 @@
         📹
       </button>
 
-      <!-- Media Gallery Button -->
-      <button
-        @click="$emit('open-media-gallery')"
-        title="Media Gallery"
-        class="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-violet-600 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
-      >
-        <span>📁 Media</span>
-      </button>
+      <!-- 3-Dot Options Menu Button -->
+      <div class="relative">
+        <button
+          @click="showMenu = !showMenu"
+          title="Conversation options"
+          class="w-10 h-10 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all flex items-center justify-center text-lg font-bold"
+        >
+          ⋮
+        </button>
 
-      <!-- In-Chat Search Trigger -->
-      <button
-        @click="$emit('open-search')"
-        title="Search in chat"
-        class="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-violet-600 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
-      >
-        <span>🔍 Search</span>
-      </button>
+        <!-- 3-Dot Options Popover Dropdown -->
+        <div
+          v-if="showMenu"
+          class="absolute right-0 top-12 z-50 w-56 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl space-y-1 animate-fade-in"
+          @click.stop
+        >
+          <!-- Search in Conversation -->
+          <button
+            @click="showMenu = false; $emit('open-search')"
+            class="w-full px-3 py-2.5 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 text-xs font-semibold transition-colors"
+          >
+            <span>🔍</span>
+            <span>Search in Chat</span>
+          </button>
 
-      <!-- Edit Nicknames Button -->
-      <button
-        @click="$emit('open-nicknames')"
-        title="Edit Chat Nicknames"
-        class="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-violet-600 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
-      >
-        <span>✏️ Nicknames</span>
-      </button>
+          <!-- Shared Media & Files -->
+          <button
+            @click="showMenu = false; $emit('open-media-gallery')"
+            class="w-full px-3 py-2.5 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 text-xs font-semibold transition-colors"
+          >
+            <span>📁</span>
+            <span>Media & Attachments</span>
+          </button>
 
-      <!-- Group Details Modal trigger -->
-      <button
-        v-if="conversation?.type === 'group'"
-        @click="$emit('open-group-details')"
-        title="View group members & info"
-        class="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-violet-600 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
-      >
-        <span>👥 Info</span>
-      </button>
+          <!-- Edit Nicknames -->
+          <button
+            @click="showMenu = false; $emit('open-nicknames')"
+            class="w-full px-3 py-2.5 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 text-xs font-semibold transition-colors"
+          >
+            <span>✏️</span>
+            <span>Edit Nicknames</span>
+          </button>
+
+          <!-- Group Details & Members (For Group Chat) -->
+          <button
+            v-if="conversation?.type === 'group'"
+            @click="showMenu = false; $emit('open-group-details')"
+            class="w-full px-3 py-2.5 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2.5 text-xs font-semibold transition-colors border-t border-slate-100 dark:border-slate-800 pt-2"
+          >
+            <span>👥</span>
+            <span>Group Info & Members</span>
+          </button>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useChatStore } from '../../stores/chat'
 import Avatar from '../base/Avatar.vue'
@@ -117,6 +136,7 @@ defineEmits(['back', 'open-group-details', 'open-search', 'open-media-gallery', 
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
+const showMenu = ref(false)
 
 const conversationName = computed(() => {
   if (!props.conversation) return ''

@@ -9,7 +9,7 @@
 
       <!-- Text Header -->
       <div class="space-y-1">
-        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Log Out of Chat App?</h3>
+        <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">Log Out To EsmiringHOY?</h3>
         <p class="text-xs text-slate-500 dark:text-slate-400">
           Are you sure you want to end your current session? You will need to sign in again to access your messages.
         </p>
@@ -27,7 +27,7 @@
           @click="emit('confirm')"
           class="flex-1 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-lg shadow-rose-600/30 transition-all"
         >
-          Log Out
+          LOGOUT
         </button>
       </div>
 
