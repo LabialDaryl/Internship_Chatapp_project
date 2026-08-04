@@ -31,6 +31,7 @@
           @back="chatStore.activeConversation = null"
           @open-group-details="isGroupDetailsOpen = true"
           @open-search="isSearchModalOpen = true"
+          @open-media-gallery="isMediaGalleryOpen = true"
           @start-call="handleStartCall"
         />
 
@@ -64,7 +65,7 @@
       </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Modals & Drawers -->
     <NewChatModal :isOpen="isModalOpen" @close="isModalOpen = false" />
     
     <CreateGroupModal
@@ -97,6 +98,12 @@
       :show="isSearchModalOpen"
       @close="isSearchModalOpen = false"
       @select="handleSearchSelect"
+    />
+
+    <ChatMediaGallery
+      :show="isMediaGalleryOpen"
+      :conversationId="chatStore.activeConversation?.id"
+      @close="isMediaGalleryOpen = false"
     />
 
     <!-- WebRTC Calling Modals -->
@@ -133,6 +140,7 @@ import GroupDetailsModal from '../components/chat/GroupDetailsModal.vue'
 import ProfileModal from '../components/profile/ProfileModal.vue'
 import ForwardMessageModal from '../components/chat/ForwardMessageModal.vue'
 import MessageSearchModal from '../components/chat/MessageSearchModal.vue'
+import ChatMediaGallery from '../components/chat/ChatMediaGallery.vue'
 import IncomingCallModal from '../components/chat/IncomingCallModal.vue'
 import ActiveCallModal from '../components/chat/ActiveCallModal.vue'
 import Button from '../components/base/Button.vue'
@@ -150,6 +158,7 @@ const isGroupDetailsOpen = ref(false)
 const isProfileModalOpen = ref(false)
 const isForwardModalOpen = ref(false)
 const isSearchModalOpen = ref(false)
+const isMediaGalleryOpen = ref(false)
 const forwardTargetMessage = ref(null)
 
 // Call State

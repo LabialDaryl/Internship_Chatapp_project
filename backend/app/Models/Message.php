@@ -16,11 +16,13 @@ class Message extends Model
         'type',
         'is_edited',
         'is_deleted',
+        'is_pinned',
     ];
 
     protected $casts = [
         'is_edited' => 'boolean',
         'is_deleted' => 'boolean',
+        'is_pinned' => 'boolean',
     ];
 
     public function conversation(): BelongsTo

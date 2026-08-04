@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\CallSignalSent;
 use App\Events\MessageDeleted;
+use App\Events\MessagePinned;
 use App\Events\MessageRead;
 use App\Events\MessageReactionUpdated;
 use App\Events\MessageSent;
@@ -14,6 +15,7 @@ use App\Models\CallLog;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\MessageReaction;
+use App\Models\ReadReceipt;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -128,6 +130,27 @@ class ChatController extends Controller
         }
 
         return response()->json(['data' => $loadedMessage], 201);
+    }
+
+    public function togglePinMessage(Request $request, Conversation $conversation, Message $message): JsonResponse
+    {
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists()) {
+            abort(403);
+        }
+
+        $message->update([
+            'is_pinned' => !$message->is_pinned,
+        ]);
+
+        $loadedMessage = $message->fresh(['sender', 'parent', 'reactions']);
+
+        try {
+            broadcast(new MessagePinned($loadedMessage))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting MessagePinned failed: ' . $e->getMessage());
+        }
+
+        return response()->json(['data' => $loadedMessage]);
     }
 
     public function toggleReaction(Request $request, Conversation $conversation, Message $message): JsonResponse
@@ -303,7 +326,6 @@ class ChatController extends Controller
             'duration_seconds' => $request->duration_seconds ?? 0,
         ]);
 
-        // Insert system message into conversation history
         $body = match ($request->status) {
             'completed' => "Call ended (" . floor($callLog->duration_seconds / 60) . "m " . ($callLog->duration_seconds % 60) . "s)",
             'declined' => "Call declined",
@@ -326,6 +348,31 @@ class ChatController extends Controller
         }
 
         return response()->json(['data' => $callLog], 201);
+    }
+
+    public function getMessageReadReceipts(Request $request, Message $message): JsonResponse
+    {
+        $receipts = ReadReceipt::where('message_id', $message->id)
+            ->with('user:id,name,username,avatar_url')
+            ->get();
+
+        return response()->json(['data' => $receipts]);
+    }
+
+    public function getConversationMedia(Request $request, Conversation $conversation): JsonResponse
+    {
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists()) {
+            abort(403);
+        }
+
+        $media = $conversation->messages()
+            ->whereIn('type', ['image', 'file', 'audio'])
+            ->where('is_deleted', false)
+            ->with('sender:id,name,username')
+            ->latest()
+            ->get();
+
+        return response()->json(['data' => $media]);
     }
 
     public function searchMessages(Request $request, Conversation $conversation): JsonResponse
@@ -373,7 +420,7 @@ class ChatController extends Controller
         }
 
         if (count($receipts) > 0) {
-            \App\Models\ReadReceipt::insert($receipts);
+            ReadReceipt::insert($receipts);
             try {
                 broadcast(new MessageRead($conversation->id, $request->user()->id))->toOthers();
             } catch (\Throwable $e) {

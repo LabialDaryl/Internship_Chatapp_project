@@ -10,6 +10,13 @@
 
     <!-- Standard Text Input Bar -->
     <template v-else>
+      <!-- Emoji & GIF Picker Popover -->
+      <EmojiGifPicker
+        :show="showEmojiPicker"
+        @select-emoji="handleSelectEmoji"
+        @select-gif="handleSelectGif"
+      />
+
       <!-- @Mention Autocomplete Popup -->
       <div
         v-if="showMentionPopup && mentionCandidates.length > 0"
@@ -47,7 +54,7 @@
         </button>
       </div>
 
-      <form @submit.prevent="handleSend" class="p-4 flex items-center gap-2.5">
+      <form @submit.prevent="handleSend" class="p-4 flex items-center gap-2">
         
         <!-- Attachment Paperclip Button -->
         <button
@@ -69,6 +76,20 @@
           accept="image/*,.pdf,.doc,.docx,.zip,.txt"
         />
 
+        <!-- Emoji & GIF Picker Button -->
+        <button
+          type="button"
+          @click="showEmojiPicker = !showEmojiPicker"
+          :disabled="disabled || uploading"
+          title="Emoji & GIF Picker"
+          :class="[
+            'p-2.5 rounded-xl border border-transparent transition-all disabled:opacity-50',
+            showEmojiPicker ? 'bg-violet-600/30 text-violet-300 border-violet-500/50' : 'text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 hover:border-slate-700/60'
+          ]"
+        >
+          😊
+        </button>
+
         <!-- Microphone Button -->
         <button
           type="button"
@@ -86,7 +107,7 @@
           v-model="text"
           @input="handleInput"
           placeholder="Type a message... (Type @ to mention)"
-          class="input-base rounded-xl py-3 text-sm"
+          class="input-base rounded-xl py-3 text-sm flex-1"
           :disabled="disabled || uploading"
         />
 
@@ -112,6 +133,7 @@ import { ref, computed } from 'vue'
 import { useChatStore } from '../../stores/chat'
 import messagesService from '../../services/messages'
 import VoiceMessageRecorder from './VoiceMessageRecorder.vue'
+import EmojiGifPicker from './EmojiGifPicker.vue'
 import Button from '../base/Button.vue'
 
 const props = defineProps({
@@ -126,6 +148,7 @@ const text = ref('')
 const fileInput = ref(null)
 const uploading = ref(false)
 const showMentionPopup = ref(false)
+const showEmojiPicker = ref(false)
 const mentionQuery = ref('')
 const chatStore = useChatStore()
 let lastTypingTime = 0
@@ -143,6 +166,16 @@ const mentionCandidates = computed(() => {
     (u.username && u.username.toLowerCase().includes(q))
   )
 })
+
+const handleSelectEmoji = (emoji) => {
+  text.value += emoji
+}
+
+const handleSelectGif = async (gifUrl) => {
+  showEmojiPicker.value = false
+  if (!chatStore.activeConversation) return
+  await chatStore.sendMessage(gifUrl, 'image')
+}
 
 const handleVoiceSend = async (audioBlob) => {
   await chatStore.sendVoiceNote(audioBlob)
@@ -209,5 +242,6 @@ const handleSend = () => {
   emit('send', text.value)
   text.value = ''
   showMentionPopup.value = false
+  showEmojiPicker.value = false
 }
 </script>

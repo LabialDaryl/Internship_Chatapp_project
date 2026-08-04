@@ -106,6 +106,9 @@ export const useChatStore = defineStore('chat', {
         .listen('.MessageReactionUpdated', (e) => {
           this.handleReactionUpdated(e)
         })
+        .listen('.MessagePinned', (e) => {
+          this.handleMessagePinned(e)
+        })
         .listen('.CallSignalSent', (e) => {
           this.handleCallSignal(e)
         })
@@ -176,6 +179,15 @@ export const useChatStore = defineStore('chat', {
         const idx = this.messages.findIndex(m => m.id === id)
         if (idx !== -1) {
           this.messages[idx].reactions = reactions
+        }
+      }
+    },
+
+    handleMessagePinned({ id, conversation_id, is_pinned }) {
+      if (this.activeConversation && this.activeConversation.id === conversation_id) {
+        const idx = this.messages.findIndex(m => m.id === id)
+        if (idx !== -1) {
+          this.messages[idx].is_pinned = is_pinned
         }
       }
     },

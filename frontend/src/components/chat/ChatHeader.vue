@@ -55,6 +55,15 @@
         📹
       </button>
 
+      <!-- Media Gallery Button -->
+      <button
+        @click="$emit('open-media-gallery')"
+        title="Media Gallery"
+        class="p-2 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 border border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
+      >
+        <span>📁 Media</span>
+      </button>
+
       <!-- In-Chat Search Trigger -->
       <button
         @click="$emit('open-search')"
@@ -90,7 +99,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['back', 'open-group-details', 'open-search', 'start-call'])
+defineEmits(['back', 'open-group-details', 'open-search', 'open-media-gallery', 'start-call'])
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()

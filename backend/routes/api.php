@@ -41,6 +41,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/conversations/{conversation}/messages/{message}', [ChatController::class, 'destroyMessage']);
     Route::post('/conversations/{conversation}/messages/{message}/forward', [ChatController::class, 'forwardMessage']);
     Route::post('/conversations/{conversation}/messages/{message}/reactions', [ChatController::class, 'toggleReaction']);
+    Route::post('/conversations/{conversation}/messages/{message}/pin', [ChatController::class, 'togglePinMessage']);
+    Route::get('/messages/{message}/read-receipts', [ChatController::class, 'getMessageReadReceipts']);
+    Route::get('/conversations/{conversation}/media', [ChatController::class, 'getConversationMedia']);
     Route::post('/conversations/{conversation}/call-signal', [ChatController::class, 'sendCallSignal']);
     Route::post('/conversations/{conversation}/call-logs', [ChatController::class, 'logCall']);
     Route::get('/conversations/{conversation}/search-messages', [ChatController::class, 'searchMessages']);

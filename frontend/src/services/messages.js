@@ -48,6 +48,21 @@ export default {
     return response.data.data
   },
 
+  async togglePinMessage(conversationId, messageId) {
+    const response = await client.post(`/conversations/${conversationId}/messages/${messageId}/pin`)
+    return response.data.data
+  },
+
+  async getMessageReadReceipts(messageId) {
+    const response = await client.get(`/messages/${messageId}/read-receipts`)
+    return response.data.data
+  },
+
+  async getConversationMedia(conversationId) {
+    const response = await client.get(`/conversations/${conversationId}/media`)
+    return response.data.data
+  },
+
   async sendCallSignal(conversationId, action, data = null) {
     const response = await client.post(`/conversations/${conversationId}/call-signal`, { action, data })
     return response.data
