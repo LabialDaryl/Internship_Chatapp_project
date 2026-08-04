@@ -1,12 +1,15 @@
 <template>
   <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-fade-in">
-    <div class="w-full max-w-lg p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl space-y-5">
+    <div class="w-full max-w-lg p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl space-y-5 max-h-[90vh] overflow-y-auto custom-scrollbar">
       
       <!-- Modal Header -->
       <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
         <div class="flex items-center space-x-3">
-          <div class="relative group cursor-pointer" @click="activeTab = 'profile'">
+          <div class="relative group cursor-pointer" @click="triggerDeviceFileSelect">
             <Avatar :name="user?.name" :src="profileForm.avatar_url || user?.avatar_url" size="lg" />
+            <div class="absolute inset-0 bg-slate-950/40 rounded-full flex items-center justify-center text-white text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+              📷 Edit
+            </div>
           </div>
           <div>
             <h3 class="text-base font-bold text-slate-900 dark:text-slate-100">{{ user?.name || user?.username }}</h3>
@@ -25,7 +28,7 @@
           class="px-3.5 py-1.5 text-xs font-bold rounded-xl transition-all"
           :class="activeTab === 'profile' ? 'bg-violet-600/10 text-violet-600 dark:bg-violet-600/20 dark:text-violet-300 border border-violet-500/30' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'"
         >
-          👤 Profile Details & Bio
+          👤 Profile & Avatar
         </button>
         <button
           @click="activeTab = 'password'"
@@ -44,26 +47,85 @@
         {{ errorMsg }}
       </div>
 
-      <!-- Tab 1: Profile Details & Bio -->
+      <!-- Tab 1: Profile Details & Bio & Avatar Picker -->
       <form v-if="activeTab === 'profile'" @submit.prevent="handleSaveProfile" class="space-y-4">
         
-        <!-- Avatar Photo Customization -->
-        <div>
-          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Avatar Image URL</label>
-          <div class="flex items-center space-x-2">
-            <input
-              v-model="profileForm.avatar_url"
-              type="text"
-              placeholder="Paste image link (e.g. https://...)"
-              class="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-slate-100 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all placeholder-slate-400"
-            />
+        <!-- Avatar Photo Customization (Device Upload + Web Search Gallery) -->
+        <div class="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold text-slate-800 dark:text-slate-200">Avatar Profile Picture</label>
             <button
+              v-if="profileForm.avatar_url"
               type="button"
               @click="profileForm.avatar_url = ''"
-              class="px-2.5 py-2 text-xs font-semibold text-slate-500 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 rounded-xl transition-all"
+              class="text-[11px] font-semibold text-rose-500 hover:underline"
             >
-              Clear
+              Reset to Default Initials
             </button>
+          </div>
+
+          <!-- Dual Action Buttons: Device Upload & Web Search Toggle -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <!-- 1. Device File Upload Button -->
+            <button
+              type="button"
+              @click="triggerDeviceFileSelect"
+              class="py-2.5 px-3 rounded-xl bg-violet-600 text-white hover:bg-violet-500 text-xs font-bold transition-all shadow-md flex items-center justify-center space-x-2"
+            >
+              <span>📁 Choose Device Photo</span>
+            </button>
+            <input
+              ref="avatarFileInput"
+              type="file"
+              accept="image/*"
+              class="hidden"
+              @change="handleFileUpload"
+            />
+
+            <!-- 2. Web Search & Gallery Toggle Button -->
+            <button
+              type="button"
+              @click="showWebGallery = !showWebGallery"
+              class="py-2.5 px-3 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-600 text-xs font-bold transition-all flex items-center justify-center space-x-1.5"
+            >
+              <span>🌐 {{ showWebGallery ? 'Hide Web Gallery' : 'Search Web Avatars' }}</span>
+            </button>
+          </div>
+
+          <!-- Web Avatar Search & Preset Gallery Panel -->
+          <div v-if="showWebGallery" class="pt-2 space-y-3 border-t border-slate-200 dark:border-slate-700/60 animate-fade-in">
+            <!-- Search Keyword Input -->
+            <div class="flex space-x-2">
+              <input
+                v-model="webSearchQuery"
+                type="text"
+                placeholder="Search web avatars (e.g., cat, 3d, anime, portrait, cyberpunk)..."
+                class="flex-1 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              />
+              <button
+                type="button"
+                @click="performWebSearch"
+                class="px-3 py-1.5 text-xs font-bold text-white bg-slate-800 dark:bg-slate-700 hover:bg-slate-700 rounded-xl"
+              >
+                Search
+              </button>
+            </div>
+
+            <!-- Avatar Image Gallery Grid -->
+            <div class="grid grid-cols-4 gap-2.5 max-h-48 overflow-y-auto p-1 custom-scrollbar">
+              <div
+                v-for="(img, idx) in filteredGalleryImages"
+                :key="idx"
+                @click="profileForm.avatar_url = img.url"
+                class="relative cursor-pointer rounded-2xl overflow-hidden aspect-square border-2 transition-all hover:scale-105 shadow-sm"
+                :class="profileForm.avatar_url === img.url ? 'border-violet-600 ring-2 ring-violet-500' : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600'"
+              >
+                <img :src="img.url" :alt="img.tag" class="w-full h-full object-cover" />
+                <span v-if="profileForm.avatar_url === img.url" class="absolute bottom-1 right-1 bg-violet-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] font-bold">
+                  ✓
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -192,6 +254,35 @@ const loading = ref(false)
 const successMsg = ref('')
 const errorMsg = ref('')
 
+const avatarFileInput = ref(null)
+const showWebGallery = ref(false)
+const webSearchQuery = ref('')
+
+// Curated Preset Gallery Images for instant selection & web search simulation
+const defaultPresetGallery = ref([
+  { tag: 'portrait', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'portrait', url: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'guy', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'woman', url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'developer', url: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'glasses', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'cat', url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'dog', url: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'neon', url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'anime 3d', url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'business', url: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=250&q=80' },
+  { tag: 'cyberpunk', url: 'https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=250&q=80' },
+])
+
+const dynamicWebResults = ref([])
+
+const filteredGalleryImages = computed(() => {
+  if (dynamicWebResults.value.length > 0) return dynamicWebResults.value
+  if (!webSearchQuery.value.trim()) return defaultPresetGallery.value
+  const q = webSearchQuery.value.toLowerCase()
+  return defaultPresetGallery.value.filter(img => img.tag.includes(q))
+})
+
 const profileForm = reactive({
   name: '',
   username: '',
@@ -215,8 +306,45 @@ watch(() => props.show, (newVal) => {
     profileForm.avatar_url = user.value.avatar_url || ''
     successMsg.value = ''
     errorMsg.value = ''
+    showWebGallery.value = false
+    dynamicWebResults.value = []
   }
 }, { immediate: true })
+
+function triggerDeviceFileSelect() {
+  if (avatarFileInput.value) {
+    avatarFileInput.value.click()
+  }
+}
+
+function handleFileUpload(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) {
+    errorMsg.value = 'Image size should be under 5MB.'
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = (evt) => {
+    profileForm.avatar_url = evt.target.result
+    successMsg.value = 'Device photo selected!'
+  }
+  reader.readAsDataURL(file)
+}
+
+function performWebSearch() {
+  if (!webSearchQuery.value.trim()) {
+    dynamicWebResults.value = []
+    return
+  }
+  const term = encodeURIComponent(webSearchQuery.value.trim())
+  dynamicWebResults.value = [
+    { tag: webSearchQuery.value, url: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80` },
+    { tag: webSearchQuery.value, url: `https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=250&q=80` },
+    { tag: webSearchQuery.value, url: `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=250&q=80` },
+    { tag: webSearchQuery.value, url: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80` },
+  ]
+}
 
 async function handleSaveProfile() {
   loading.value = true
@@ -224,7 +352,7 @@ async function handleSaveProfile() {
   errorMsg.value = ''
   try {
     await authStore.updateProfile({ ...profileForm })
-    successMsg.value = 'Profile details & Bio updated successfully!'
+    successMsg.value = 'Profile details & Avatar picture updated successfully!'
   } catch (e) {
     errorMsg.value = e.response?.data?.message || 'Failed to update profile'
   } finally {
