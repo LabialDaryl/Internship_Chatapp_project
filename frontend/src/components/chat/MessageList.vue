@@ -45,7 +45,7 @@
         <template v-else>
           <!-- Sender Name (Group Chat) -->
           <span v-if="!isOwn(msg) && isGroup" class="text-[11px] text-violet-600 dark:text-violet-400 font-semibold px-1 flex items-center space-x-1">
-            <span>{{ msg.sender?.name || msg.sender?.username || 'User' }}</span>
+            <span>{{ getSenderDisplayName(msg) }}</span>
             <span v-if="msg.is_pinned" title="Pinned message" class="text-amber-500">📌</span>
           </span>
 
@@ -462,6 +462,12 @@ const getFileName = (url) => {
 const formatTime = (iso) => {
   if (!iso) return ''
   return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
+
+const getSenderDisplayName = (msg) => {
+  if (!msg.sender) return 'User'
+  const p = chatStore.activeConversation?.participants?.find(part => (part.user_id || part.user?.id) === msg.sender_id)
+  return p?.pivot?.nickname || p?.nickname || msg.sender.name || msg.sender.username || 'User'
 }
 
 const scrollToBottom = () => {

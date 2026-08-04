@@ -34,6 +34,7 @@
           @open-group-details="isGroupDetailsOpen = true"
           @open-search="isSearchModalOpen = true"
           @open-media-gallery="isMediaGalleryOpen = true"
+          @open-nicknames="isNicknamesModalOpen = true"
           @start-call="handleStartCall"
         />
 
@@ -81,6 +82,13 @@
       :conversation="chatStore.activeConversation"
       @close="isGroupDetailsOpen = false"
       @leave="handleLeaveGroup"
+      @open-nicknames="isNicknamesModalOpen = true"
+    />
+
+    <NicknamesModal
+      :show="isNicknamesModalOpen"
+      :conversation="chatStore.activeConversation"
+      @close="isNicknamesModalOpen = false"
     />
 
     <ProfileModal
@@ -165,6 +173,7 @@ import webrtcManager from '../services/webrtc'
 import { useRouter } from 'vue-router'
 import SettingsModal from '../components/settings/SettingsModal.vue'
 import LogoutModal from '../components/auth/LogoutModal.vue'
+import NicknamesModal from '../components/chat/NicknamesModal.vue'
 
 const chatStore = useChatStore()
 const authStore = useAuthStore()
@@ -177,6 +186,7 @@ const isGroupDetailsOpen = ref(false)
 const isProfileModalOpen = ref(false)
 const isSettingsModalOpen = ref(false)
 const isLogoutModalOpen = ref(false)
+const isNicknamesModalOpen = ref(false)
 const isForwardModalOpen = ref(false)
 const isSearchModalOpen = ref(false)
 const isMediaGalleryOpen = ref(false)

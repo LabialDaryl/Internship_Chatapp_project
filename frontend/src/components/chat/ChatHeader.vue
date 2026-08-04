@@ -78,6 +78,15 @@
         <span>🔍 Search</span>
       </button>
 
+      <!-- Edit Nicknames Button -->
+      <button
+        @click="$emit('open-nicknames')"
+        title="Edit Chat Nicknames"
+        class="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-violet-600 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
+      >
+        <span>✏️ Nicknames</span>
+      </button>
+
       <!-- Group Details Modal trigger -->
       <button
         v-if="conversation?.type === 'group'"
@@ -104,7 +113,7 @@ const props = defineProps({
   }
 })
 
-defineEmits(['back', 'open-group-details', 'open-search', 'open-media-gallery', 'start-call'])
+defineEmits(['back', 'open-group-details', 'open-search', 'open-media-gallery', 'start-call', 'open-nicknames'])
 
 const authStore = useAuthStore()
 const chatStore = useChatStore()
@@ -113,7 +122,7 @@ const conversationName = computed(() => {
   if (!props.conversation) return ''
   if (props.conversation.type === 'group' && props.conversation.name) return props.conversation.name
   const other = props.conversation.participants?.find(p => p.user_id !== authStore.user?.id)
-  return other?.user?.name || (other?.user?.username ? `@${other.user.username}` : 'Chat')
+  return other?.pivot?.nickname || other?.nickname || other?.user?.name || (other?.user?.username ? `@${other.user.username}` : 'Chat')
 })
 
 const onlineOtherCount = computed(() => {

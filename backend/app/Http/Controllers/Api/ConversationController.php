@@ -218,4 +218,87 @@ class ConversationController extends Controller
 
         return response()->json(['message' => 'Left conversation']);
     }
+
+    public function updateGroupInfo(Request $request, Conversation $conversation): JsonResponse
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists() || !$conversation->isGroup()) {
+            return response()->json(['message' => 'Unauthorized to update group info.'], 403);
+        }
+
+        $newName = $request->name;
+        $conversation->update(['name' => $newName]);
+
+        // Insert System Message
+        $systemMessage = $conversation->messages()->create([
+            'sender_id' => $request->user()->id,
+            'body' => $request->user()->name . " changed the group name to \"{$newName}\"",
+            'type' => 'system',
+        ]);
+
+        $conversation->touch();
+        $loadedMessage = $systemMessage->load(['sender']);
+
+        try {
+            broadcast(new MessageSent($loadedMessage))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting Group Rename MessageSent failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Group name updated',
+            'conversation' => $conversation->fresh(['participants.user']),
+            'system_message' => $loadedMessage
+        ]);
+    }
+
+    public function updateParticipantNickname(Request $request, Conversation $conversation, User $user): JsonResponse
+    {
+        $request->validate([
+            'nickname' => 'nullable|string|max:100',
+        ]);
+
+        if (!$conversation->participants()->where('user_id', $request->user()->id)->exists()) {
+            return response()->json(['message' => 'Unauthorized to set nicknames.'], 403);
+        }
+
+        $participant = $conversation->participants()->where('user_id', $user->id)->firstOrFail();
+        $newNickname = trim($request->nickname ?? '');
+
+        $participant->update(['nickname' => $newNickname ?: null]);
+
+        $updaterName = $request->user()->name;
+        $targetName = $user->name;
+
+        if ($newNickname) {
+            $msgText = "{$updaterName} set the nickname for {$targetName} to \"{$newNickname}\"";
+        } else {
+            $msgText = "{$updaterName} cleared {$targetName}'s nickname";
+        }
+
+        // Insert System Message
+        $systemMessage = $conversation->messages()->create([
+            'sender_id' => $request->user()->id,
+            'body' => $msgText,
+            'type' => 'system',
+        ]);
+
+        $conversation->touch();
+        $loadedMessage = $systemMessage->load(['sender']);
+
+        try {
+            broadcast(new MessageSent($loadedMessage))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting Nickname Update MessageSent failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Nickname updated',
+            'conversation' => $conversation->fresh(['participants.user']),
+            'system_message' => $loadedMessage
+        ]);
+    }
 }

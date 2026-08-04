@@ -31,6 +31,16 @@ export default {
     return response.data
   },
 
+  async updateGroupInfo(conversationId, name) {
+    const response = await client.put(`/conversations/${conversationId}/name`, { name })
+    return response.data
+  },
+
+  async updateParticipantNickname(conversationId, userId, nickname) {
+    const response = await client.put(`/conversations/${conversationId}/participants/${userId}/nickname`, { nickname })
+    return response.data
+  },
+
   async leaveConversation(id) {
     const response = await client.post(`/conversations/${id}/leave`)
     return response.data

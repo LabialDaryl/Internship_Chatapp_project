@@ -28,8 +28,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Conversations
     Route::apiResource('conversations', ConversationController::class)->only(['index', 'store', 'show']);
+    Route::put('/conversations/{conversation}/name', [ConversationController::class, 'updateGroupInfo']);
     Route::post('/conversations/{conversation}/participants', [ConversationController::class, 'addParticipant']);
     Route::put('/conversations/{conversation}/participants/{user}/role', [ConversationController::class, 'updateParticipantRole']);
+    Route::put('/conversations/{conversation}/participants/{user}/nickname', [ConversationController::class, 'updateParticipantNickname']);
     Route::delete('/conversations/{conversation}/participants/{user}', [ConversationController::class, 'removeParticipant']);
     Route::post('/conversations/{conversation}/leave', [ConversationController::class, 'leave']);
 

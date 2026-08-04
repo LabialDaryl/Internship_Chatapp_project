@@ -51,6 +51,20 @@ export const useChatStore = defineStore('chat', {
       }, 2500)
     },
 
+    updateActiveConversationData(convData) {
+      if (this.activeConversation && this.activeConversation.id === convData.id) {
+        this.activeConversation = { ...this.activeConversation, ...convData }
+      }
+      const idx = this.conversations.findIndex(c => c.id === convData.id)
+      if (idx !== -1) {
+        this.conversations[idx] = { ...this.conversations[idx], ...convData }
+      }
+    },
+
+    appendIncomingMessage(msg) {
+      this.handleIncomingMessage(msg)
+    },
+
     async fetchConversations() {
       this.loading = true
       this.error = null

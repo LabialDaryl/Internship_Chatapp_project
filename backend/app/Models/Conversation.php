@@ -40,7 +40,7 @@ class Conversation extends Model
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'conversation_participants')
-            ->withPivot(['role', 'joined_at', 'left_at'])
+            ->withPivot(['role', 'nickname', 'joined_at', 'left_at'])
             ->withTimestamps();
     }
 

@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'username', 'email', 'password', 'avatar_url', 'date_of_birth', 'last_seen_at', 'is_online'])]
+#[Fillable(['name', 'username', 'email', 'bio', 'password', 'avatar_url', 'date_of_birth', 'last_seen_at', 'is_online'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -48,7 +48,7 @@ class User extends Authenticatable
     public function conversations(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
     {
         return $this->belongsToMany(Conversation::class, 'conversation_participants')
-            ->withPivot(['role', 'joined_at', 'left_at'])
+            ->withPivot(['role', 'nickname', 'joined_at', 'left_at'])
             ->withTimestamps();
     }
 

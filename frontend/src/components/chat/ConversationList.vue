@@ -108,7 +108,7 @@ const filteredConversations = computed(() => {
 const getConversationName = (conv) => {
   if (conv.type === 'group' && conv.name) return conv.name
   const other = conv.participants?.find(p => p.user_id !== authStore.user?.id)
-  return other?.user?.name || other?.user?.username || 'Chat'
+  return other?.pivot?.nickname || other?.nickname || other?.user?.name || other?.user?.username || 'Chat'
 }
 
 const isOtherUserOnline = (conv) => {

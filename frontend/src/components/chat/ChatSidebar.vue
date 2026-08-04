@@ -31,7 +31,7 @@
     <!-- Bottom Section: Profile Popover Trigger only -->
     <div class="flex flex-col items-center gap-4 relative">
 
-      <!-- User Avatar → opens the profile popover (Settings, Theme, Logout all live here) -->
+      <!-- User Avatar → opens the profile popover (Settings(theme, etc.),Logout all live here) -->
       <div class="relative">
         <div
           @click="showProfilePopover = !showProfilePopover"
@@ -79,22 +79,6 @@
               class="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2 font-medium transition-colors"
             >
               <span>⚙️</span> <span>Settings</span>
-            </button>
-
-            <!-- Theme Toggle -->
-            <button
-              @click="toggleDark"
-              class="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-between font-medium transition-colors"
-            >
-              <span class="flex items-center space-x-2">
-                <span>{{ isDark ? '🌙' : '☀️' }}</span>
-                <span>{{ isDark ? 'Dark Mode' : 'Light Mode' }}</span>
-              </span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded-md font-semibold"
-                :class="isDark ? 'bg-violet-600/20 text-violet-400' : 'bg-amber-100 text-amber-600'"
-              >
-                {{ isDark ? 'On' : 'Off' }}
-              </span>
             </button>
 
             <!-- Divider -->
