@@ -119,7 +119,7 @@
           />
 
           <!-- SYSTEM CALL LOG MESSAGE TYPE -->
-          <div v-if="msg.type === 'system'" class="px-4 py-2 bg-slate-800/80 border border-slate-700/60 rounded-2xl text-xs text-slate-300 flex items-center space-x-2 font-medium my-1 shadow-sm">
+          <div v-else-if="msg.type === 'system'" class="px-4 py-2 bg-slate-800/80 border border-slate-700/60 rounded-2xl text-xs text-slate-300 flex items-center space-x-2 font-medium my-1 shadow-sm">
             <span>📞</span>
             <span>{{ msg.body }}</span>
           </div>

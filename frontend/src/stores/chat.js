@@ -152,6 +152,13 @@ export const useChatStore = defineStore('chat', {
       if (conv) {
         conv.latestMessage = message
         conv.updated_at = message.created_at
+
+        // Handle unread counts for non-active chats
+        if (message.sender_id !== authStore.user?.id) {
+          if (!this.activeConversation || this.activeConversation.id !== message.conversation_id) {
+            conv.unread_count = (conv.unread_count || 0) + 1
+          }
+        }
       }
     },
 
@@ -239,6 +246,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     async selectConversation(conversation) {
+      conversation.unread_count = 0
       this.activeConversation = conversation
       this.messages = []
       this.replyingToMessage = null

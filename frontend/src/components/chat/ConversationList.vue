@@ -41,11 +41,11 @@
         :key="conv.id"
         @click="chatStore.selectConversation(conv)"
         :class="[
-          'p-3 flex items-center gap-3 cursor-pointer transition-all hover:bg-slate-800/40',
+          'p-3 flex items-center gap-3 cursor-pointer transition-all hover:bg-slate-800/40 relative',
           chatStore.activeConversation?.id === conv.id ? 'bg-primary-500/10 border-l-4 border-primary-500' : ''
         ]"
       >
-        <!-- Avatar -->
+        <!-- Avatar with Online Status Dot -->
         <Avatar
           :name="getConversationName(conv)"
           :src="conv.avatar_url"
@@ -54,7 +54,7 @@
           :isOnline="isOtherUserOnline(conv)"
         />
 
-        <!-- Info -->
+        <!-- Info & Preview -->
         <div class="flex-1 min-w-0">
           <div class="flex justify-between items-baseline">
             <h3 class="text-sm font-semibold text-slate-200 truncate">
@@ -65,10 +65,20 @@
             </span>
           </div>
 
-          <p class="text-xs text-slate-400 truncate mt-0.5">
-            <span v-if="conv.latestMessage?.sender_id === authStore.user?.id" class="text-slate-500 font-medium">You: </span>
-            {{ conv.latestMessage?.body || 'No messages yet' }}
-          </p>
+          <div class="flex items-center justify-between mt-0.5">
+            <p class="text-xs text-slate-400 truncate flex-1 pr-2">
+              <span v-if="conv.latestMessage?.sender_id === authStore.user?.id" class="text-slate-500 font-medium">You: </span>
+              <span>{{ formatMessagePreview(conv.latestMessage) }}</span>
+            </p>
+
+            <!-- Unread Badge Counter Pill -->
+            <span
+              v-if="conv.unread_count > 0 && chatStore.activeConversation?.id !== conv.id"
+              class="min-w-[18px] h-[18px] px-1.5 rounded-full bg-violet-600 text-white text-[10px] font-bold flex items-center justify-center shadow-md shadow-violet-600/40 animate-pulse shrink-0"
+            >
+              {{ conv.unread_count > 99 ? '99+' : conv.unread_count }}
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -97,7 +107,6 @@ const filteredConversations = computed(() => {
 
 const getConversationName = (conv) => {
   if (conv.type === 'group' && conv.name) return conv.name
-  // Find other participant for direct chat
   const other = conv.participants?.find(p => p.user_id !== authStore.user?.id)
   return other?.user?.name || other?.user?.username || 'Chat'
 }
@@ -105,7 +114,18 @@ const getConversationName = (conv) => {
 const isOtherUserOnline = (conv) => {
   if (conv.type === 'group') return false
   const other = conv.participants?.find(p => p.user_id !== authStore.user?.id)
-  return !!other?.user?.is_online
+  if (!other) return false
+  return chatStore.isUserOnline(other.user_id) || !!other.user?.is_online
+}
+
+const formatMessagePreview = (message) => {
+  if (!message) return 'No messages yet'
+  if (message.is_deleted) return '🚫 Message deleted'
+  if (message.type === 'audio') return '🎙️ Voice note'
+  if (message.type === 'image') return '🖼️ Photo'
+  if (message.type === 'file') return '📁 Attachment'
+  if (message.type === 'system') return `📞 ${message.body}`
+  return message.body
 }
 
 const formatTime = (isoString) => {
