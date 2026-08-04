@@ -2167,10 +2167,11 @@ npm run dev
 | **Phase 7** | Advanced Message Actions | Quoted Reply, In-Line Edit (`(edited)` tag), Soft Deletions (Delete for Everyone vs Delete for Me), `ForwardMessageModal`, Side 3-Dot Options Button, `@Mention` Autocomplete & Pill Badges | ✅ Completed |
 | **Phase 8** | Reactions, Voice & Presence | Emoji Reactions (`message_reactions` table, `MessageReactionUpdated` event), `VoiceMessageRecorder.vue` (MediaRecorder timer & wave visualizer), `AudioPlayerBubble.vue`, Echo Presence Channel (`presence-chat`), `MessageSearchModal.vue` | ✅ Completed |
 | **Phase 9** | WebRTC Video/Audio Calling | WebRTC Calling Engine (`services/webrtc.js`), Reverb Signaling (`CallSignalSent` event), `IncomingCallModal.vue` (ringtone chime, Accept/Decline), `ActiveCallModal.vue` (video stream, mic mute, camera toggle, screen share), `call_logs` table | ✅ Completed |
+| **Phase 10** | Pins, Emojis, GIFs & Media Gallery | Pinned Messages Header Banner (`PinnedMessagesBanner.vue`, `MessagePinned` event), `EmojiGifPicker.vue` (categorized emoji grid & animated GIF search), `ReadReceiptsModal.vue` (participant read timestamps), `ChatMediaGallery.vue` (Photos, Files, Audio tabs) | ✅ Completed |
 
 ---
 
-## Phase 9 Technical Architecture & Implementation Reference
+## Phase 10 Technical Architecture & Implementation Reference
 
 ### 1. Database Seeder & Storage Link (`backend/database/seeders/DatabaseSeeder.php`)
 - **Pre-populated Accounts** (Password: `password`):
@@ -2180,26 +2181,22 @@ npm run dev
   - Charlie Davis (`charlie@example.com`, `@charlie`)
 - **Storage Link**: Connected `backend/public/storage` to `backend/storage/app/public` via `php artisan storage:link`.
 
-### 2. Media, Voice & WebRTC Calling API
-- **WebRTC Calling**:
-  - WebRTC Peer Connection Manager (`services/webrtc.js`) utilizing Google STUN servers.
-  - Reverb Signaling Endpoint: `POST /api/conversations/{conversation}/call-signal` relaying SDP offers, SDP answers, ICE candidates, and call control events (`CallSignalSent`).
-  - Call Log Storage: `POST /api/conversations/{conversation}/call-logs` logging completed, missed, and declined call records in `call_logs` table with in-chat system log cards.
-- **Media Attachments**:
-  - `POST /api/conversations/{conversation}/attachments` (Images & documents up to 10MB)
-  - `POST /api/conversations/{conversation}/voice-notes` (Compressed `.webm` / `.mp3` audio files)
+### 2. Rich Expressive Messaging, Calling & Media Gallery API
+- **Emoji & GIF Picker**:
+  - `EmojiGifPicker.vue` popover in `MessageInput.vue` featuring a 4-category emoji grid (Smileys, Gestures, Hearts, Animals) and Giphy/Tenor animated GIF search tab sending animated GIFs as rich inline media messages.
+- **Pinned Messages & Banner**:
+  - `POST /api/conversations/{conversation}/messages/{message}/pin` toggling `is_pinned` column on `messages` table and broadcasting `MessagePinned` event to thread participants.
+  - `PinnedMessagesBanner.vue` rendered at top of thread with jump-to message scrolling and unpin controls.
+- **Read Receipts Detail**:
+  - `GET /api/messages/{message}/read-receipts` returning user avatars, usernames, and exact read timestamps in `ReadReceiptsModal.vue`.
+- **Chat Media Gallery**:
+  - `GET /api/conversations/{conversation}/media` returning shared photos, files, and voice notes organized into clean tabs in `ChatMediaGallery.vue`.
 
-### 3. Calling UI Modals & Interaction Controls
-- **`IncomingCallModal.vue`**: Pop-up window displaying caller avatar, call type (Audio/Video), Accept and Decline controls, and chime.
-- **`ActiveCallModal.vue`**: Full-screen or picture-in-picture video call modal displaying remote video feed, local self-view preview, timer, Mic Mute, Camera Toggle, Screen Share, and End Call controls.
-- **Emoji Reactions & Actions**: Side 3-dot options menu (`⋮`) for Reply, Copy, Forward, Edit, Delete, and emoji reactions (❤️, 😂, 👍, 🔥, 😮, 😢).
-- **Mentions & Search**: `@mention` autocomplete with pill badges and `MessageSearchModal.vue` in-chat search.
-
-### 4. Real-Time WebSockets & Live Presence Architecture
+### 3. Real-Time WebSockets & WebRTC Signaling Architecture
 - **Broadcasting Engine**: Laravel Reverb listening on port `8080`.
 - **Sanctum Authorizer**: Dynamic authorizer in `src/api/echo.js` sending `Authorization: Bearer <token>` via Axios for `/api/broadcasting/auth`.
 - **Anti-Duplication**: `src/api/client.js` injects `X-Socket-ID` header into all HTTP requests so `broadcast(...)->toOthers()` suppresses echoing back to the sender.
-- **Presence Tracking**: Echo presence channel `presence-chat` tracking online user IDs in real-time with green status badges and typing banners (`"Alice is typing..."`).
+- **Presence & Calling**: Echo presence channel `presence-chat` tracking online user IDs in real-time, plus WebRTC signaling over `private-conversation.{id}`.
 
 ---
 
@@ -2227,6 +2224,9 @@ npm run dev
 | `DELETE` | `/api/conversations/{id}/messages/{msg}` | Delete message | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/messages/{msg}/forward` | Forward message to target chat | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/messages/{msg}/reactions` | Toggle emoji reaction | `auth:sanctum` |
+| `POST` | `/api/conversations/{id}/messages/{msg}/pin` | Toggle message pin status | `auth:sanctum` |
+| `GET` | `/api/messages/{id}/read-receipts` | Get participant read timestamps | `auth:sanctum` |
+| `GET` | `/api/conversations/{id}/media` | Get shared photos, files & audio | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/call-signal` | Relay WebRTC SDP / ICE signals | `auth:sanctum` |
 | `POST` | `/api/conversations/{id}/call-logs` | Record call history log | `auth:sanctum` |
 | `GET` | `/api/conversations/{id}/search-messages` | Search message history in chat | `auth:sanctum` |
@@ -2255,5 +2255,5 @@ npm run dev
 ```
 
 > **Repository**: `LabialDaryl/Internship_Chatapp_project` (Branch: `main`)  
-> **Status**: All 9 Development Phases Fully Completed, Audited, Tested & Operational.
+> **Status**: All 10 Development Phases Fully Completed, Audited, Tested & Operational.
 
