@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\MessageSent;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CreateConversationRequest;
 use App\Models\Conversation;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Http\JsonResponse;
-use App\Models\User;
 
 class ConversationController extends Controller
 {
@@ -27,7 +28,6 @@ class ConversationController extends Controller
         $user = $request->user();
 
         if ($request->type === 'direct') {
-            // Check if direct conversation already exists
             $existing = Conversation::where('type', 'direct')
                 ->whereHas('participants', function ($q) use ($user) {
                     $q->where('user_id', $user->id);
@@ -90,32 +90,132 @@ class ConversationController extends Controller
     {
         $request->validate(['user_id' => 'required|exists:users,id']);
         
-        $participant = $conversation->participants()->where('user_id', $request->user()->id)->first();
-        if (!$participant || $participant->role !== 'admin' || !$conversation->isGroup()) {
-            abort(403);
+        $admin = $conversation->participants()->where('user_id', $request->user()->id)->first();
+        if (!$admin || $admin->role !== 'admin' || !$conversation->isGroup()) {
+            return response()->json(['message' => 'Unauthorized to add members.'], 403);
         }
 
+        $newUser = User::findOrFail($request->user_id);
+
         $conversation->participants()->firstOrCreate([
-            'user_id' => $request->user_id,
+            'user_id' => $newUser->id,
         ], ['role' => 'member']);
 
-        return response()->json(['message' => 'Participant added']);
+        // Insert System Message
+        $systemMessage = $conversation->messages()->create([
+            'sender_id' => $request->user()->id,
+            'body' => "{$newUser->name} (@{$newUser->username}) was added to the group by " . $request->user()->name,
+            'type' => 'system',
+        ]);
+
+        $conversation->touch();
+        $loadedMessage = $systemMessage->load(['sender']);
+
+        try {
+            broadcast(new MessageSent($loadedMessage))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting Add Participant MessageSent failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Participant added',
+            'conversation' => $conversation->fresh(['participants.user']),
+            'system_message' => $loadedMessage
+        ]);
     }
 
     public function removeParticipant(Request $request, Conversation $conversation, User $user): JsonResponse
     {
-        $participant = $conversation->participants()->where('user_id', $request->user()->id)->first();
-        if (!$participant || $participant->role !== 'admin' || !$conversation->isGroup()) {
-            abort(403);
+        $admin = $conversation->participants()->where('user_id', $request->user()->id)->first();
+        if (!$admin || $admin->role !== 'admin' || !$conversation->isGroup()) {
+            return response()->json(['message' => 'Unauthorized to remove members.'], 403);
         }
 
         $conversation->participants()->where('user_id', $user->id)->delete();
-        return response()->json(['message' => 'Participant removed']);
+
+        // Insert System Message
+        $systemMessage = $conversation->messages()->create([
+            'sender_id' => $request->user()->id,
+            'body' => "{$user->name} (@{$user->username}) was removed from the group by " . $request->user()->name,
+            'type' => 'system',
+        ]);
+
+        $conversation->touch();
+        $loadedMessage = $systemMessage->load(['sender']);
+
+        try {
+            broadcast(new MessageSent($loadedMessage))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting Remove Participant MessageSent failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Participant removed',
+            'conversation' => $conversation->fresh(['participants.user']),
+            'system_message' => $loadedMessage
+        ]);
+    }
+
+    public function updateParticipantRole(Request $request, Conversation $conversation, User $user): JsonResponse
+    {
+        $request->validate([
+            'role' => 'required|string|in:admin,member',
+        ]);
+
+        $admin = $conversation->participants()->where('user_id', $request->user()->id)->first();
+        if (!$admin || $admin->role !== 'admin' || !$conversation->isGroup()) {
+            return response()->json(['message' => 'Unauthorized to update roles.'], 403);
+        }
+
+        $participant = $conversation->participants()->where('user_id', $user->id)->firstOrFail();
+        $participant->update(['role' => $request->role]);
+
+        $actionText = $request->role === 'admin' ? 'promoted to Admin' : 'demoted to member';
+
+        // Insert System Message
+        $systemMessage = $conversation->messages()->create([
+            'sender_id' => $request->user()->id,
+            'body' => "{$user->name} (@{$user->username}) was {$actionText} by " . $request->user()->name,
+            'type' => 'system',
+        ]);
+
+        $conversation->touch();
+        $loadedMessage = $systemMessage->load(['sender']);
+
+        try {
+            broadcast(new MessageSent($loadedMessage))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting Role Update MessageSent failed: ' . $e->getMessage());
+        }
+
+        return response()->json([
+            'message' => 'Role updated',
+            'conversation' => $conversation->fresh(['participants.user']),
+            'system_message' => $loadedMessage
+        ]);
     }
 
     public function leave(Request $request, Conversation $conversation): JsonResponse
     {
-        $conversation->participants()->where('user_id', $request->user()->id)->delete();
+        $user = $request->user();
+        $conversation->participants()->where('user_id', $user->id)->delete();
+
+        // Insert System Message
+        $systemMessage = $conversation->messages()->create([
+            'sender_id' => $user->id,
+            'body' => "{$user->name} (@{$user->username}) left the group",
+            'type' => 'system',
+        ]);
+
+        $conversation->touch();
+        $loadedMessage = $systemMessage->load(['sender']);
+
+        try {
+            broadcast(new MessageSent($loadedMessage))->toOthers();
+        } catch (\Throwable $e) {
+            logger()->warning('Broadcasting Leave Group MessageSent failed: ' . $e->getMessage());
+        }
+
         return response()->json(['message' => 'Left conversation']);
     }
 }

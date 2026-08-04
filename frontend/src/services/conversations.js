@@ -26,6 +26,11 @@ export default {
     return response.data
   },
 
+  async updateParticipantRole(conversationId, userId, role) {
+    const response = await client.put(`/conversations/${conversationId}/participants/${userId}/role`, { role })
+    return response.data
+  },
+
   async leaveConversation(id) {
     const response = await client.post(`/conversations/${id}/leave`)
     return response.data
