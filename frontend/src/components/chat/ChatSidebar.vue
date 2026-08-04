@@ -1,5 +1,6 @@
 <template>
   <aside class="flex flex-col justify-between items-center py-4 px-2 w-16 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 z-20">
+    <!-- Top Section: Logo + Primary Actions -->
     <div class="flex flex-col items-center gap-5">
       <!-- App Logo -->
       <div title="EsmiringHOY — CONNECT & CHAT" class="cursor-pointer transform hover:scale-105 transition-transform">
@@ -9,7 +10,7 @@
       <!-- New Direct Chat Button -->
       <button
         @click="$emit('open-new-chat')"
-        class="w-10 h-10 rounded-xl bg-violet-600/10 dark:bg-violet-600/20 text-violet-600 dark:text-violet-400 hover:bg-violet-600 hover:text-white dark:hover:text-white transition-all flex items-center justify-center border border-violet-500/20 shadow-sm"
+        class="w-10 h-10 rounded-xl bg-violet-600/10 dark:bg-violet-600/20 text-violet-600 dark:text-violet-400 hover:bg-violet-600 hover:text-white transition-all flex items-center justify-center border border-violet-500/20 shadow-sm"
         title="Start Direct Chat"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -25,31 +26,18 @@
       >
         <span class="text-base">👥</span>
       </button>
-
-      <!-- Settings Button -->
-      <button
-        @click="$emit('open-settings')"
-        class="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-violet-600 hover:text-white text-slate-600 dark:text-slate-400 transition-all flex items-center justify-center border border-slate-200 dark:border-slate-700/60 shadow-sm"
-        title="App Settings"
-      >
-        <span class="text-base">⚙️</span>
-      </button>
     </div>
 
+    <!-- Bottom Section: Profile Popover Trigger only -->
     <div class="flex flex-col items-center gap-4 relative">
-      <!-- Theme Toggle -->
-      <button
-        @click="toggleDark"
-        class="w-10 h-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-all flex items-center justify-center"
-        :title="isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
-      >
-        <span v-if="isDark">🌙</span>
-        <span v-else>☀️</span>
-      </button>
 
-      <!-- User Avatar Profile Popover Trigger -->
+      <!-- User Avatar → opens the profile popover (Settings, Theme, Logout all live here) -->
       <div class="relative">
-        <div @click="showProfilePopover = !showProfilePopover" class="cursor-pointer transform transition-transform hover:scale-110" title="Account Menu">
+        <div
+          @click="showProfilePopover = !showProfilePopover"
+          class="cursor-pointer transform transition-transform hover:scale-110"
+          title="Account Menu — Settings, Theme & More"
+        >
           <Avatar
             :name="authStore.user?.name"
             :src="authStore.user?.avatar_url"
@@ -77,6 +65,7 @@
 
           <!-- Quick Action Buttons -->
           <div class="space-y-1 text-xs">
+            <!-- Edit Profile -->
             <button
               @click="showProfilePopover = false; $emit('open-profile')"
               class="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2 font-medium transition-colors"
@@ -84,6 +73,7 @@
               <span>👤</span> <span>Edit Profile</span>
             </button>
 
+            <!-- Settings -->
             <button
               @click="showProfilePopover = false; $emit('open-settings')"
               class="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center space-x-2 font-medium transition-colors"
@@ -91,17 +81,26 @@
               <span>⚙️</span> <span>Settings</span>
             </button>
 
+            <!-- Theme Toggle -->
             <button
               @click="toggleDark"
               class="w-full px-3 py-2 rounded-xl text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 flex items-center justify-between font-medium transition-colors"
             >
               <span class="flex items-center space-x-2">
                 <span>{{ isDark ? '🌙' : '☀️' }}</span>
-                <span>Theme</span>
+                <span>{{ isDark ? 'Dark Mode' : 'Light Mode' }}</span>
               </span>
-              <span class="text-[10px] text-slate-400 font-normal">{{ isDark ? 'Dark' : 'Light' }}</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-md font-semibold"
+                :class="isDark ? 'bg-violet-600/20 text-violet-400' : 'bg-amber-100 text-amber-600'"
+              >
+                {{ isDark ? 'On' : 'Off' }}
+              </span>
             </button>
 
+            <!-- Divider -->
+            <div class="my-1 border-t border-slate-200 dark:border-slate-800"></div>
+
+            <!-- Log Out -->
             <button
               @click="showProfilePopover = false; $emit('open-logout-modal')"
               class="w-full px-3 py-2 rounded-xl text-left hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 dark:text-rose-400 flex items-center space-x-2 font-bold transition-colors"
