@@ -25,113 +25,115 @@
         No messages yet. Send a greeting!
       </div>
 
-      <!-- Message Item -->
+      <!-- Message Item Loop -->
       <div
         v-for="msg in messages"
         :key="msg.id"
         :id="`message-${msg.id}`"
         :class="[
-          'flex flex-col max-w-[85%] space-y-1 relative group transition-all duration-300',
-          isOwn(msg) ? 'ml-auto items-end' : 'mr-auto items-start'
+          msg.type === 'system'
+            ? 'w-full flex items-center justify-center my-2.5'
+            : ['flex flex-col max-w-[85%] space-y-1 relative group transition-all duration-300', isOwn(msg) ? 'ml-auto items-end' : 'mr-auto items-start']
         ]"
       >
-        <!-- Sender Name (Group Chat) -->
-        <span v-if="!isOwn(msg) && isGroup" class="text-[11px] text-violet-400 font-medium px-1 flex items-center space-x-1">
-          <span>{{ msg.sender?.name || msg.sender?.username || 'User' }}</span>
-          <span v-if="msg.is_pinned" title="Pinned message" class="text-amber-400">📌</span>
-        </span>
+        <!-- SYSTEM NOTIFICATION (MESSENGER STYLE - CENTERED, NO CONTAINER BOX HOLDER) -->
+        <p v-if="msg.type === 'system'" class="text-xs text-slate-400 font-normal text-center max-w-lg leading-relaxed select-none">
+          {{ msg.body }}
+        </p>
 
-        <!-- Quoted Parent Message (Reply Preview Card) -->
-        <div v-if="msg.parent" class="px-3 py-1.5 bg-slate-800/60 border-l-2 border-violet-500 rounded-r-xl text-xs text-slate-300 mb-1 max-w-full truncate">
-          <span class="font-semibold text-violet-400">@{{ msg.parent.sender?.name || 'User' }}: </span>
-          <span class="italic text-slate-400">{{ msg.parent.body }}</span>
-        </div>
+        <!-- STANDARD CHAT BUBBLE CONTENT -->
+        <template v-else>
+          <!-- Sender Name (Group Chat) -->
+          <span v-if="!isOwn(msg) && isGroup" class="text-[11px] text-violet-400 font-medium px-1 flex items-center space-x-1">
+            <span>{{ msg.sender?.name || msg.sender?.username || 'User' }}</span>
+            <span v-if="msg.is_pinned" title="Pinned message" class="text-amber-400">📌</span>
+          </span>
 
-        <!-- SIDE-BY-SIDE BUBBLE + 3-DOTS ACTION ROW -->
-        <div class="flex items-center gap-2 relative w-full" :class="isOwn(msg) ? 'justify-end' : 'justify-start'">
-          
-          <!-- 3-Dot Options Dropdown (LEFT side for own messages) -->
-          <div v-if="isOwn(msg) && !msg.is_deleted" class="relative">
-            <button
-              @click.stop="activeDropdownId = activeDropdownId === msg.id ? null : msg.id"
-              class="w-7 h-7 rounded-full text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition-all flex items-center justify-center text-sm opacity-0 group-hover:opacity-100"
-              title="Message options"
-            >
-              ⋮
-            </button>
+          <!-- Quoted Parent Message (Reply Preview Card) -->
+          <div v-if="msg.parent" class="px-3 py-1.5 bg-slate-800/60 border-l-2 border-violet-500 rounded-r-xl text-xs text-slate-300 mb-1 max-w-full truncate">
+            <span class="font-semibold text-violet-400">@{{ msg.parent.sender?.name || 'User' }}: </span>
+            <span class="italic text-slate-400">{{ msg.parent.body }}</span>
+          </div>
+
+          <!-- SIDE-BY-SIDE BUBBLE + 3-DOTS ACTION ROW -->
+          <div class="flex items-center gap-2 relative w-full" :class="isOwn(msg) ? 'justify-end' : 'justify-start'">
             
-            <!-- Options Dropdown Menu -->
-            <div
-              v-if="activeDropdownId === msg.id"
-              class="absolute top-0 right-8 z-30 w-44 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
-              @click.stop
-            >
-              <!-- Quick Emoji Bar -->
-              <div class="flex items-center justify-between px-2 py-1 border-b border-slate-800 text-sm">
-                <span v-for="e in ['❤️', '😂', '👍', '🔥', '😮']" :key="e" @click="handleReaction(msg, e)" class="cursor-pointer hover:scale-125 transition-transform p-1">{{ e }}</span>
+            <!-- 3-Dot Options Dropdown (LEFT side for own messages) -->
+            <div v-if="isOwn(msg) && !msg.is_deleted" class="relative">
+              <button
+                @click.stop="activeDropdownId = activeDropdownId === msg.id ? null : msg.id"
+                class="w-7 h-7 rounded-full text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 transition-all flex items-center justify-center text-sm opacity-0 group-hover:opacity-100"
+                title="Message options"
+              >
+                ⋮
+              </button>
+              
+              <!-- Options Dropdown Menu -->
+              <div
+                v-if="activeDropdownId === msg.id"
+                class="absolute top-0 right-8 z-30 w-44 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl py-1 text-xs text-slate-200 animate-fade-in"
+                @click.stop
+              >
+                <!-- Quick Emoji Bar -->
+                <div class="flex items-center justify-between px-2 py-1 border-b border-slate-800 text-sm">
+                  <span v-for="e in ['❤️', '😂', '👍', '🔥', '😮']" :key="e" @click="handleReaction(msg, e)" class="cursor-pointer hover:scale-125 transition-transform p-1">{{ e }}</span>
+                </div>
+
+                <button @click="triggerPin(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+                  <span>📌</span> <span>{{ msg.is_pinned ? 'Unpin' : 'Pin' }}</span>
+                </button>
+                <button @click="triggerReply(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+                  <span>💬</span> <span>Reply</span>
+                </button>
+                <button @click="copyText(msg.body)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+                  <span>📋</span> <span>Copy</span>
+                </button>
+                <button @click="triggerForward(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
+                  <span>➡️</span> <span>Forward</span>
+                </button>
+                <button v-if="msg.type === 'text'" @click="startEdit(msg)" class="w-full px-3 py-1.5 text-left hover:bg-amber-500/20 text-amber-300 flex items-center space-x-2">
+                  <span>✏️</span> <span>Edit</span>
+                </button>
+                <button @click="triggerDelete(msg)" class="w-full px-3 py-1.5 text-left hover:bg-rose-500/20 text-rose-300 flex items-center space-x-2">
+                  <span>🗑️</span> <span>Delete</span>
+                </button>
               </div>
-
-              <button @click="triggerPin(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
-                <span>📌</span> <span>{{ msg.is_pinned ? 'Unpin' : 'Pin' }}</span>
-              </button>
-              <button @click="triggerReply(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
-                <span>💬</span> <span>Reply</span>
-              </button>
-              <button @click="copyText(msg.body)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
-                <span>📋</span> <span>Copy</span>
-              </button>
-              <button @click="triggerForward(msg)" class="w-full px-3 py-1.5 text-left hover:bg-violet-600/20 flex items-center space-x-2">
-                <span>➡️</span> <span>Forward</span>
-              </button>
-              <button v-if="msg.type === 'text'" @click="startEdit(msg)" class="w-full px-3 py-1.5 text-left hover:bg-amber-500/20 text-amber-300 flex items-center space-x-2">
-                <span>✏️</span> <span>Edit</span>
-              </button>
-              <button @click="triggerDelete(msg)" class="w-full px-3 py-1.5 text-left hover:bg-rose-500/20 text-rose-300 flex items-center space-x-2">
-                <span>🗑️</span> <span>Delete</span>
-              </button>
             </div>
-          </div>
 
-          <!-- MESSAGE BUBBLE / DELETED STATE / INLINE EDIT / AUDIO -->
-          <!-- DELETED MESSAGE STATE -->
-          <div v-if="msg.is_deleted" class="px-4 py-2.5 rounded-2xl text-xs italic text-slate-400 bg-slate-900/60 border border-slate-800">
-            🚫 This message was deleted
-          </div>
+            <!-- MESSAGE BUBBLE / DELETED STATE / INLINE EDIT / AUDIO -->
+            <!-- DELETED MESSAGE STATE -->
+            <div v-if="msg.is_deleted" class="px-4 py-2.5 rounded-2xl text-xs italic text-slate-400 bg-slate-900/60 border border-slate-800">
+              🚫 This message was deleted
+            </div>
 
-          <!-- IN-LINE EDITING INPUT MODE -->
-          <div v-else-if="editingId === msg.id" class="w-full space-y-2">
-            <input
-              v-model="editBody"
-              type="text"
-              class="w-full px-3 py-2 bg-slate-800 border border-violet-500 rounded-xl text-sm text-slate-100 focus:outline-none"
+            <!-- IN-LINE EDITING INPUT MODE -->
+            <div v-else-if="editingId === msg.id" class="w-full space-y-2">
+              <input
+                v-model="editBody"
+                type="text"
+                class="w-full px-3 py-2 bg-slate-800 border border-violet-500 rounded-xl text-sm text-slate-100 focus:outline-none"
+              />
+              <div class="flex justify-end space-x-2">
+                <button @click="editingId = null" class="px-2.5 py-1 text-xs text-slate-400 hover:text-slate-200">Cancel</button>
+                <button @click="saveEdit(msg.id)" class="px-3 py-1 text-xs bg-violet-600 text-white font-semibold rounded-lg">Save</button>
+              </div>
+            </div>
+
+            <!-- AUDIO VOICE MESSAGE TYPE -->
+            <AudioPlayerBubble
+              v-else-if="msg.type === 'audio'"
+              :src="msg.body"
+              :isOwn="isOwn(msg)"
             />
-            <div class="flex justify-end space-x-2">
-              <button @click="editingId = null" class="px-2.5 py-1 text-xs text-slate-400 hover:text-slate-200">Cancel</button>
-              <button @click="saveEdit(msg.id)" class="px-3 py-1 text-xs bg-violet-600 text-white font-semibold rounded-lg">Save</button>
+
+            <!-- IMAGE MESSAGE TYPE -->
+            <div v-else-if="msg.type === 'image'" class="overflow-hidden rounded-2xl border border-slate-700/60 shadow-lg group cursor-pointer relative" @click="openLightbox(msg.body)">
+              <img :src="msg.body" alt="Attached Image" class="max-w-sm max-h-64 object-cover rounded-2xl transform transition-transform group-hover:scale-105" />
+              <div class="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span class="px-2.5 py-1 bg-slate-900/80 text-slate-200 text-xs rounded-lg backdrop-blur-sm">🔍 Expand</span>
+              </div>
+              <span v-if="msg.is_pinned" class="absolute top-2 left-2 bg-amber-500/90 text-slate-950 px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-md">📌 Pinned</span>
             </div>
-          </div>
-
-          <!-- AUDIO VOICE MESSAGE TYPE -->
-          <AudioPlayerBubble
-            v-else-if="msg.type === 'audio'"
-            :src="msg.body"
-            :isOwn="isOwn(msg)"
-          />
-
-          <!-- SYSTEM CALL LOG MESSAGE TYPE -->
-          <div v-else-if="msg.type === 'system'" class="px-4 py-2 bg-slate-800/80 border border-slate-700/60 rounded-2xl text-xs text-slate-300 flex items-center space-x-2 font-medium my-1 shadow-sm">
-            <span>📞</span>
-            <span>{{ msg.body }}</span>
-          </div>
-
-          <!-- IMAGE MESSAGE TYPE -->
-          <div v-else-if="msg.type === 'image'" class="overflow-hidden rounded-2xl border border-slate-700/60 shadow-lg group cursor-pointer relative" @click="openLightbox(msg.body)">
-            <img :src="msg.body" alt="Attached Image" class="max-w-sm max-h-64 object-cover rounded-2xl transform transition-transform group-hover:scale-105" />
-            <div class="absolute inset-0 bg-slate-900/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span class="px-2.5 py-1 bg-slate-900/80 text-slate-200 text-xs rounded-lg backdrop-blur-sm">🔍 Expand</span>
-            </div>
-            <span v-if="msg.is_pinned" class="absolute top-2 left-2 bg-amber-500/90 text-slate-950 px-1.5 py-0.5 rounded-md text-[10px] font-bold shadow-md">📌 Pinned</span>
-          </div>
 
           <!-- FILE ATTACHMENT MESSAGE TYPE -->
           <div v-else-if="msg.type === 'file'"
@@ -246,6 +248,7 @@
             <span v-else>✓</span>
           </button>
         </div>
+      </template>
       </div>
 
     </div>
