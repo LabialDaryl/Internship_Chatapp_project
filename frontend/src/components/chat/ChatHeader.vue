@@ -117,8 +117,8 @@ const conversationName = computed(() => {
 const isOnline = computed(() => {
   if (!props.conversation) return false
   if (props.conversation.type === 'group') {
-    const otherParticipants = props.conversation.participants?.filter(p => p.user_id !== authStore.user?.id) || []
-    return otherParticipants.some(p => chatStore.isUserOnline(p.user_id) || !!p.user?.is_online)
+    const participants = props.conversation.participants || []
+    return participants.some(p => chatStore.isUserOnline(p.user_id) || !!p.user?.is_online)
   }
   const other = props.conversation.participants?.find(p => p.user_id !== authStore.user?.id)
   if (!other) return false
