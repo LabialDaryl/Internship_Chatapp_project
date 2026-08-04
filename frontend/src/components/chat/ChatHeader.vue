@@ -28,7 +28,10 @@
           <span v-if="typingStatus" class="text-violet-400 font-medium animate-pulse">
             {{ typingStatus }}
           </span>
-          <span v-else-if="conversation?.type === 'group'">{{ conversation.participants?.length || 0 }} members</span>
+          <span v-else-if="conversation?.type === 'group'" class="flex items-center gap-1">
+            <span>{{ conversation.participants?.length || 0 }} members</span>
+            <span v-if="isOnline" class="text-emerald-400 font-medium ml-1">• Active now</span>
+          </span>
           <span v-else-if="isOnline" class="text-emerald-400 font-medium">Online</span>
           <span v-else class="text-slate-500">Offline</span>
         </p>
@@ -112,7 +115,11 @@ const conversationName = computed(() => {
 })
 
 const isOnline = computed(() => {
-  if (!props.conversation || props.conversation.type === 'group') return false
+  if (!props.conversation) return false
+  if (props.conversation.type === 'group') {
+    const otherParticipants = props.conversation.participants?.filter(p => p.user_id !== authStore.user?.id) || []
+    return otherParticipants.some(p => chatStore.isUserOnline(p.user_id) || !!p.user?.is_online)
+  }
   const other = props.conversation.participants?.find(p => p.user_id !== authStore.user?.id)
   if (!other) return false
   return chatStore.isUserOnline(other.user_id) || !!other.user?.is_online
