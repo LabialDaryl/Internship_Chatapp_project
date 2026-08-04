@@ -1,16 +1,18 @@
 <template>
-  <div class="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
+  <div class="flex h-screen w-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
     <!-- Left Navigation Sidebar -->
     <ChatSidebar
       @open-new-chat="isModalOpen = true"
       @open-create-group="isGroupModalOpen = true"
       @open-profile="isProfileModalOpen = true"
+      @open-settings="isSettingsModalOpen = true"
+      @open-logout-modal="isLogoutModalOpen = true"
     />
 
     <!-- Conversations List Panel -->
     <div
       :class="[
-        'h-full border-r border-slate-800',
+        'h-full border-r border-slate-200 dark:border-slate-800',
         chatStore.activeConversation && isMobile() ? 'hidden' : 'block'
       ]"
     >
@@ -20,7 +22,7 @@
     <!-- Active Message Thread Panel -->
     <div
       :class="[
-        'flex-1 flex flex-col h-full bg-slate-950',
+        'flex-1 flex flex-col h-full bg-slate-100 dark:bg-slate-950',
         !chatStore.activeConversation && isMobile() ? 'hidden' : 'flex'
       ]"
     >
@@ -47,12 +49,12 @@
 
       <!-- Empty State (No Chat Selected) -->
       <div v-else class="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-500 space-y-4">
-        <div class="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center text-3xl">
+        <div class="w-16 h-16 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-3xl shadow-lg">
           💬
         </div>
         <div>
-          <h3 class="text-lg font-bold text-slate-300">Select a conversation</h3>
-          <p class="text-sm text-slate-500 max-w-sm mt-1">Choose a chat from the sidebar or start a new conversation to begin messaging.</p>
+          <h3 class="text-lg font-bold text-slate-800 dark:text-slate-200">Select a conversation</h3>
+          <p class="text-sm text-slate-500 dark:text-slate-400 max-w-sm mt-1">Choose a chat from the sidebar or start a new conversation to begin messaging.</p>
         </div>
         <div class="flex space-x-3">
           <Button variant="primary" @click="isModalOpen = true">
@@ -84,6 +86,18 @@
     <ProfileModal
       :show="isProfileModalOpen"
       @close="isProfileModalOpen = false"
+    />
+
+    <SettingsModal
+      :show="isSettingsModalOpen"
+      @close="isSettingsModalOpen = false"
+      @open-profile="isProfileModalOpen = true"
+    />
+
+    <LogoutModal
+      :show="isLogoutModalOpen"
+      @close="isLogoutModalOpen = false"
+      @confirm="handleConfirmLogout"
     />
 
     <ForwardMessageModal
@@ -148,17 +162,30 @@ import conversationsService from '../services/conversations'
 import messagesService from '../services/messages'
 import webrtcManager from '../services/webrtc'
 
+import { useRouter } from 'vue-router'
+import SettingsModal from '../components/settings/SettingsModal.vue'
+import LogoutModal from '../components/auth/LogoutModal.vue'
+
 const chatStore = useChatStore()
 const authStore = useAuthStore()
+const router = useRouter()
 const { isMobile } = useBreakpoints()
 
 const isModalOpen = ref(false)
 const isGroupModalOpen = ref(false)
 const isGroupDetailsOpen = ref(false)
 const isProfileModalOpen = ref(false)
+const isSettingsModalOpen = ref(false)
+const isLogoutModalOpen = ref(false)
 const isForwardModalOpen = ref(false)
 const isSearchModalOpen = ref(false)
 const isMediaGalleryOpen = ref(false)
+
+const handleConfirmLogout = async () => {
+  isLogoutModalOpen.value = false
+  await authStore.logout()
+  router.push({ name: 'login' })
+}
 const forwardTargetMessage = ref(null)
 
 // Call State

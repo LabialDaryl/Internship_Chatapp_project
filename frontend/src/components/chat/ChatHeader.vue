@@ -1,10 +1,10 @@
 <template>
-  <div class="h-16 px-6 border-b border-slate-800 bg-slate-900/60 flex items-center justify-between">
+  <div class="h-16 px-6 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/60 flex items-center justify-between">
     <div class="flex items-center gap-3">
       <!-- Back Button for Mobile -->
       <button
         @click="$emit('back')"
-        class="md:hidden p-2 rounded-lg text-slate-400 hover:bg-slate-800"
+        class="md:hidden p-2 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -21,21 +21,21 @@
       />
 
       <div>
-        <h2 class="text-base font-bold text-slate-100 leading-tight">
+        <h2 class="text-base font-bold text-slate-900 dark:text-slate-100 leading-tight">
           {{ conversationName }}
         </h2>
-        <p class="text-xs text-slate-400">
-          <span v-if="typingStatus" class="text-violet-400 font-medium animate-pulse">
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          <span v-if="typingStatus" class="text-violet-600 dark:text-violet-400 font-medium animate-pulse">
             {{ typingStatus }}
           </span>
           <span v-else-if="conversation?.type === 'group'" class="flex items-center gap-1">
             <span>{{ conversation.participants?.length || 0 }} members</span>
-            <span v-if="onlineOtherCount > 0" class="text-emerald-400 font-medium ml-1">
+            <span v-if="onlineOtherCount > 0" class="text-emerald-500 font-medium ml-1">
               • {{ onlineOtherCount === 1 ? 'Active now' : `${onlineOtherCount} active now` }}
             </span>
           </span>
-          <span v-else-if="isOnline" class="text-emerald-400 font-medium">Online</span>
-          <span v-else class="text-slate-500">Offline</span>
+          <span v-else-if="isOnline" class="text-emerald-500 font-medium">Online</span>
+          <span v-else class="text-slate-400">Offline</span>
         </p>
       </div>
     </div>
@@ -46,7 +46,7 @@
       <button
         @click="$emit('start-call', 'audio')"
         title="Start Audio Call"
-        class="p-2.5 rounded-xl text-slate-400 hover:text-emerald-400 hover:bg-slate-800/80 border border-slate-800/80 transition-all text-xs font-semibold"
+        class="p-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all text-xs font-semibold"
       >
         📞
       </button>
@@ -55,7 +55,7 @@
       <button
         @click="$emit('start-call', 'video')"
         title="Start Video Call"
-        class="p-2.5 rounded-xl text-slate-400 hover:text-violet-400 hover:bg-slate-800/80 border border-slate-800/80 transition-all text-xs font-semibold"
+        class="p-2.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-violet-600 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all text-xs font-semibold"
       >
         📹
       </button>
@@ -64,7 +64,7 @@
       <button
         @click="$emit('open-media-gallery')"
         title="Media Gallery"
-        class="p-2 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 border border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
+        class="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-violet-600 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
       >
         <span>📁 Media</span>
       </button>
@@ -73,7 +73,7 @@
       <button
         @click="$emit('open-search')"
         title="Search in chat"
-        class="p-2 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 border border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
+        class="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-violet-600 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
       >
         <span>🔍 Search</span>
       </button>
@@ -83,7 +83,7 @@
         v-if="conversation?.type === 'group'"
         @click="$emit('open-group-details')"
         title="View group members & info"
-        class="p-2 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 border border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
+        class="p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:text-violet-600 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800/80 transition-all flex items-center space-x-1.5 text-xs font-semibold"
       >
         <span>👥 Info</span>
       </button>

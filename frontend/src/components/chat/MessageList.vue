@@ -37,22 +37,22 @@
         ]"
       >
         <!-- SYSTEM NOTIFICATION (MESSENGER STYLE - CENTERED, NO CONTAINER BOX HOLDER) -->
-        <p v-if="msg.type === 'system'" class="text-xs text-slate-400 font-normal text-center max-w-lg leading-relaxed select-none">
+        <p v-if="msg.type === 'system'" class="text-xs text-slate-500 dark:text-slate-400 font-normal text-center max-w-lg leading-relaxed select-none">
           {{ msg.body }}
         </p>
 
         <!-- STANDARD CHAT BUBBLE CONTENT -->
         <template v-else>
           <!-- Sender Name (Group Chat) -->
-          <span v-if="!isOwn(msg) && isGroup" class="text-[11px] text-violet-400 font-medium px-1 flex items-center space-x-1">
+          <span v-if="!isOwn(msg) && isGroup" class="text-[11px] text-violet-600 dark:text-violet-400 font-semibold px-1 flex items-center space-x-1">
             <span>{{ msg.sender?.name || msg.sender?.username || 'User' }}</span>
-            <span v-if="msg.is_pinned" title="Pinned message" class="text-amber-400">📌</span>
+            <span v-if="msg.is_pinned" title="Pinned message" class="text-amber-500">📌</span>
           </span>
 
           <!-- Quoted Parent Message (Reply Preview Card) -->
-          <div v-if="msg.parent" class="px-3 py-1.5 bg-slate-800/60 border-l-2 border-violet-500 rounded-r-xl text-xs text-slate-300 mb-1 max-w-full truncate">
-            <span class="font-semibold text-violet-400">@{{ msg.parent.sender?.name || 'User' }}: </span>
-            <span class="italic text-slate-400">{{ msg.parent.body }}</span>
+          <div v-if="msg.parent" class="px-3 py-1.5 bg-slate-200/70 dark:bg-slate-800/60 border-l-2 border-violet-500 rounded-r-xl text-xs text-slate-800 dark:text-slate-300 mb-1 max-w-full truncate">
+            <span class="font-semibold text-violet-600 dark:text-violet-400">@{{ msg.parent.sender?.name || 'User' }}: </span>
+            <span class="italic text-slate-500 dark:text-slate-400">{{ msg.parent.body }}</span>
           </div>
 
           <!-- SIDE-BY-SIDE BUBBLE + 3-DOTS ACTION ROW -->
@@ -162,7 +162,7 @@
               'px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm break-words relative',
               isOwn(msg)
                 ? 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-br-none shadow-violet-600/20'
-                : 'bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700/50'
+                : 'bg-slate-200/90 text-slate-900 border border-slate-300/50 dark:bg-slate-800 dark:text-slate-100 rounded-bl-none dark:border-slate-700/50'
             ]"
           >
             <span v-if="msg.is_pinned" class="text-amber-300 mr-1 font-bold">📌</span>

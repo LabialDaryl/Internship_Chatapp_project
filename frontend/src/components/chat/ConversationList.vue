@@ -1,11 +1,11 @@
 <template>
-  <div class="flex flex-col h-full bg-slate-900/40 border-r border-slate-800/80 w-full md:w-80 lg:w-96">
+  <div class="flex flex-col h-full bg-white dark:bg-slate-900/40 border-r border-slate-200 dark:border-slate-800/80 w-full md:w-80 lg:w-96">
     <!-- Header -->
-    <div class="p-4 border-b border-slate-800 flex justify-between items-center">
-      <h2 class="text-xl font-bold text-slate-100">Messages</h2>
+    <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+      <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">Messages</h2>
       <button
         @click="$emit('open-new-chat')"
-        class="p-2 rounded-lg bg-primary-500/10 text-primary-400 hover:bg-primary-500 hover:text-white transition-all text-xs font-semibold flex items-center gap-1"
+        class="p-2 rounded-lg bg-violet-600/10 text-violet-600 dark:text-violet-400 hover:bg-violet-600 hover:text-white transition-all text-xs font-semibold flex items-center gap-1"
       >
         <span>+ New Chat</span>
       </button>
@@ -17,7 +17,7 @@
         type="text"
         v-model="searchQuery"
         placeholder="Filter chats..."
-        class="input-base text-sm py-1.5"
+        class="input-base text-sm py-1.5 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400"
       />
     </div>
 
@@ -29,20 +29,20 @@
     <!-- Empty State -->
     <div v-else-if="filteredConversations.length === 0" class="flex-1 flex flex-col items-center justify-center p-6 text-center text-slate-500 space-y-3">
       <p class="text-sm">No conversations found</p>
-      <button @click="$emit('open-new-chat')" class="text-xs text-primary-400 hover:underline">
+      <button @click="$emit('open-new-chat')" class="text-xs text-violet-600 dark:text-violet-400 hover:underline font-semibold">
         Start a new chat
       </button>
     </div>
 
     <!-- Conversation List -->
-    <div v-else class="flex-1 overflow-y-auto divide-y divide-slate-800/50">
+    <div v-else class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
       <div
         v-for="conv in filteredConversations"
         :key="conv.id"
         @click="chatStore.selectConversation(conv)"
         :class="[
-          'p-3 flex items-center gap-3 cursor-pointer transition-all hover:bg-slate-800/40 relative',
-          chatStore.activeConversation?.id === conv.id ? 'bg-primary-500/10 border-l-4 border-primary-500' : ''
+          'p-3 flex items-center gap-3 cursor-pointer transition-all hover:bg-slate-100/80 dark:hover:bg-slate-800/40 relative',
+          chatStore.activeConversation?.id === conv.id ? 'bg-violet-600/10 dark:bg-violet-600/20 border-l-4 border-violet-600' : ''
         ]"
       >
         <!-- Avatar with Online Status Dot -->
@@ -57,17 +57,17 @@
         <!-- Info & Preview -->
         <div class="flex-1 min-w-0">
           <div class="flex justify-between items-baseline">
-            <h3 class="text-sm font-semibold text-slate-200 truncate">
+            <h3 class="text-sm font-bold text-slate-900 dark:text-slate-200 truncate">
               {{ getConversationName(conv) }}
             </h3>
-            <span class="text-[10px] text-slate-500 ml-2 whitespace-nowrap">
+            <span class="text-[10px] text-slate-400 dark:text-slate-500 ml-2 whitespace-nowrap">
               {{ formatTime(conv.latestMessage?.created_at || conv.updated_at) }}
             </span>
           </div>
 
           <div class="flex items-center justify-between mt-0.5">
-            <p class="text-xs text-slate-400 truncate flex-1 pr-2">
-              <span v-if="conv.latestMessage?.sender_id === authStore.user?.id" class="text-slate-500 font-medium">You: </span>
+            <p class="text-xs text-slate-600 dark:text-slate-400 truncate flex-1 pr-2">
+              <span v-if="conv.latestMessage?.sender_id === authStore.user?.id" class="text-slate-400 dark:text-slate-500 font-medium">You: </span>
               <span>{{ formatMessagePreview(conv.latestMessage) }}</span>
             </p>
 

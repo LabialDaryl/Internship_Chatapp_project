@@ -1,5 +1,5 @@
 <template>
-  <div class="border-t border-slate-800 bg-slate-900/40 relative">
+  <div class="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 relative">
     
     <!-- Voice Recording Mode Bar -->
     <VoiceMessageRecorder
@@ -20,9 +20,9 @@
       <!-- @Mention Autocomplete Popup -->
       <div
         v-if="showMentionPopup && mentionCandidates.length > 0"
-        class="absolute bottom-full left-4 mb-2 w-64 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl overflow-hidden z-30 animate-fade-in"
+        class="absolute bottom-full left-4 mb-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-xl shadow-2xl overflow-hidden z-30 animate-fade-in"
       >
-        <div class="px-3 py-1.5 bg-slate-800/80 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-700/60">
+        <div class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700/60">
           Mention Member
         </div>
         <div class="max-h-40 overflow-y-auto custom-scrollbar">
@@ -30,13 +30,13 @@
             v-for="user in mentionCandidates"
             :key="user.id"
             @click="insertMention(user.username || user.name)"
-            class="px-3 py-2 flex items-center space-x-2.5 hover:bg-violet-600/20 cursor-pointer transition-colors border-b border-slate-800/50 last:border-0"
+            class="px-3 py-2 flex items-center space-x-2.5 hover:bg-violet-600/10 dark:hover:bg-violet-600/20 cursor-pointer transition-colors border-b border-slate-100 dark:border-slate-800/50 last:border-0"
           >
             <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-600 flex items-center justify-center text-[10px] font-bold text-white">
               {{ user.name?.charAt(0) || user.username?.charAt(0) }}
             </div>
             <div class="min-w-0">
-              <p class="text-xs font-medium text-slate-200 truncate">{{ user.name || user.username }}</p>
+              <p class="text-xs font-bold text-slate-900 dark:text-slate-200 truncate">{{ user.name || user.username }}</p>
               <p class="text-[10px] text-slate-400">@{{ user.username }}</p>
             </div>
           </div>
@@ -44,12 +44,12 @@
       </div>
 
       <!-- Replying Preview Top Bar -->
-      <div v-if="chatStore.replyingToMessage" class="px-4 py-2 bg-slate-800/80 border-b border-slate-700/60 flex items-center justify-between animate-fade-in text-xs">
+      <div v-if="chatStore.replyingToMessage" class="px-4 py-2 bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700/60 flex items-center justify-between animate-fade-in text-xs">
         <div class="flex items-center space-x-2 min-w-0">
-          <span class="text-violet-400 font-bold">💬 Replying to {{ chatStore.replyingToMessage.sender?.name || 'Message' }}:</span>
-          <span class="text-slate-300 truncate max-w-md italic">"{{ chatStore.replyingToMessage.body }}"</span>
+          <span class="text-violet-600 dark:text-violet-400 font-bold">💬 Replying to {{ chatStore.replyingToMessage.sender?.name || 'Message' }}:</span>
+          <span class="text-slate-700 dark:text-slate-300 truncate max-w-md italic">"{{ chatStore.replyingToMessage.body }}"</span>
         </div>
-        <button @click="chatStore.replyingToMessage = null" class="text-slate-400 hover:text-slate-200 transition-colors ml-2">
+        <button @click="chatStore.replyingToMessage = null" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors ml-2">
           ✕
         </button>
       </div>
@@ -62,7 +62,7 @@
           @click="triggerFileSelect"
           :disabled="disabled || uploading"
           title="Attach image or file"
-          class="p-2.5 rounded-xl text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 transition-all disabled:opacity-50"
+          class="p-2.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-700/60 transition-all disabled:opacity-50"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path>
@@ -81,22 +81,19 @@
           type="button"
           @click="showEmojiPicker = !showEmojiPicker"
           :disabled="disabled || uploading"
-          title="Emoji & GIF Picker"
-          :class="[
-            'p-2.5 rounded-xl border border-transparent transition-all disabled:opacity-50',
-            showEmojiPicker ? 'bg-violet-600/30 text-violet-300 border-violet-500/50' : 'text-slate-400 hover:text-violet-300 hover:bg-slate-800/80 hover:border-slate-700/60'
-          ]"
+          title="Emoji & Animated GIF Picker"
+          class="p-2.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent hover:border-slate-200 dark:hover:border-slate-700/60 transition-all text-base disabled:opacity-50"
         >
           😊
         </button>
 
-        <!-- Microphone Button -->
+        <!-- Voice Note Recording Trigger Button -->
         <button
           type="button"
           @click="chatStore.isRecordingVoice = true"
           :disabled="disabled || uploading"
           title="Record voice note"
-          class="p-2.5 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 border border-transparent hover:border-slate-700/60 transition-all disabled:opacity-50"
+          class="p-2.5 rounded-xl text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 border border-transparent transition-all disabled:opacity-50"
         >
           🎙️
         </button>
@@ -106,8 +103,8 @@
           type="text"
           v-model="text"
           @input="handleInput"
-          placeholder="Type a message... (Type @ to mention)"
-          class="input-base rounded-xl py-3 text-sm flex-1"
+          placeholder="Type a message... (Use @ to mention)"
+          class="flex-1 input-base rounded-xl py-3 text-sm bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
           :disabled="disabled || uploading"
         />
 
