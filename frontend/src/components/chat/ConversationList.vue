@@ -41,10 +41,15 @@
         :key="conv.id"
         @click="chatStore.selectConversation(conv)"
         :class="[
-          'p-3 flex items-center gap-3 cursor-pointer transition-all hover:bg-slate-100/80 dark:hover:bg-slate-800/40 relative',
-          chatStore.activeConversation?.id === conv.id ? 'bg-violet-600/10 dark:bg-violet-600/20 border-l-4 border-violet-600' : ''
+          'p-3.5 flex items-center gap-3 cursor-pointer transition-all hover:bg-slate-100/80 dark:hover:bg-slate-800/40 relative',
+          (chatStore.activeConversation && String(chatStore.activeConversation.id) === String(conv.id)) ? 'bg-violet-600/10 dark:bg-violet-600/20 font-medium' : ''
         ]"
       >
+        <!-- Active Vertical Line Indicator (Left Accent Bar) -->
+        <div
+          v-if="chatStore.activeConversation && String(chatStore.activeConversation.id) === String(conv.id)"
+          class="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-violet-500 to-fuchsia-600 rounded-r-full shadow-md shadow-violet-500/50"
+        ></div>
         <!-- Avatar with Online Status Dot -->
         <Avatar
           :name="getConversationName(conv)"
