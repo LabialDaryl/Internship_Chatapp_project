@@ -36,5 +36,22 @@ export function useNotificationSound() {
     }
   }
 
-  return { playChime }
+  let ringInterval = null
+
+  const playRingtone = () => {
+    stopRingtone()
+    playChime()
+    ringInterval = setInterval(() => {
+      playChime()
+    }, 1500)
+  }
+
+  const stopRingtone = () => {
+    if (ringInterval) {
+      clearInterval(ringInterval)
+      ringInterval = null
+    }
+  }
+
+  return { playChime, playRingtone, stopRingtone }
 }

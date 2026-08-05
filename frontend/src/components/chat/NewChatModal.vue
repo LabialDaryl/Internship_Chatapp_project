@@ -26,7 +26,13 @@
           @click="startChat(user.id)"
           class="p-3 flex items-center gap-3 rounded-xl hover:bg-slate-800 cursor-pointer transition-all"
         >
-          <Avatar :name="user.name" :src="user.avatar_url" size="sm" />
+          <Avatar
+            :name="user.name"
+            :src="user.avatar_url"
+            size="sm"
+            showStatus
+            :isOnline="chatStore.isUserOnline(user.id) || !!user.is_online"
+          />
           <div class="flex-1 min-w-0">
             <h4 class="text-sm font-semibold text-slate-200 truncate">{{ user.name }}</h4>
             <p class="text-xs text-slate-400">@{{ user.username }}</p>

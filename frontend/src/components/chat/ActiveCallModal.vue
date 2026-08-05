@@ -101,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import webrtcManager from '../../services/webrtc'
 
 const props = defineProps({
@@ -127,19 +127,34 @@ const hasRemoteVideo = ref(false)
 const duration = ref(0)
 let timer = null
 
+const attachLocalStream = () => {
+  if (localVideoRef.value && webrtcManager.localStream) {
+    localVideoRef.value.srcObject = webrtcManager.localStream
+    localVideoRef.value.play().catch(() => {})
+  }
+}
+
+const attachRemoteStream = (stream) => {
+  if (remoteVideoRef.value && stream) {
+    remoteVideoRef.value.srcObject = stream
+    hasRemoteVideo.value = stream.getVideoTracks().length > 0
+    remoteVideoRef.value.play().catch(() => {})
+  }
+  if (remoteAudioRef.value && stream) {
+    remoteAudioRef.value.srcObject = stream
+    remoteAudioRef.value.play().catch(() => {})
+  }
+}
+
 onMounted(() => {
   timer = setInterval(() => {
     if (props.show) duration.value++
   }, 1000)
 
   webrtcManager.onRemoteStream = (stream) => {
-    if (remoteVideoRef.value) {
-      remoteVideoRef.value.srcObject = stream
-      hasRemoteVideo.value = stream.getVideoTracks().length > 0
-    }
-    if (remoteAudioRef.value) {
-      remoteAudioRef.value.srcObject = stream
-    }
+    nextTick(() => {
+      attachRemoteStream(stream)
+    })
   }
 })
 
@@ -149,9 +164,12 @@ onUnmounted(() => {
 
 watch(() => props.show, (val) => {
   if (val) {
-    if (localVideoRef.value && webrtcManager.localStream) {
-      localVideoRef.value.srcObject = webrtcManager.localStream
-    }
+    nextTick(() => {
+      attachLocalStream()
+      if (webrtcManager.remoteStream) {
+        attachRemoteStream(webrtcManager.remoteStream)
+      }
+    })
   }
 })
 

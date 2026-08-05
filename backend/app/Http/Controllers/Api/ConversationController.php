@@ -16,6 +16,9 @@ class ConversationController extends Controller
     public function index(Request $request): JsonResponse
     {
         $conversations = Conversation::forUser($request->user()->id)
+            ->where(function ($query) {
+                $query->has('messages')->orWhere('type', 'group');
+            })
             ->with(['participants.user', 'latestMessage'])
             ->latest('updated_at')
             ->get();

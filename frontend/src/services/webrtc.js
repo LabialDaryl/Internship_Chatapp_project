@@ -17,7 +17,35 @@ class WebRTCManager {
   }
 
   async initLocalStream(video = true, audio = true) {
-    this.localStream = await navigator.mediaDevices.getUserMedia({ video, audio })
+    if (this.localStream) {
+      this.localStream.getTracks().forEach(t => t.stop())
+      this.localStream = null
+    }
+
+    try {
+      if (video) {
+        // Tier 1: HD Video + Audio
+        this.localStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+          audio: true
+        })
+      } else {
+        this.localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true })
+      }
+    } catch (err1) {
+      try {
+        if (video) {
+          // Tier 2: Basic Video + Audio
+          this.localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        } else {
+          this.localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true })
+        }
+      } catch (err2) {
+        // Tier 3: Fallback Audio Only
+        this.localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true })
+      }
+    }
+
     return this.localStream
   }
 

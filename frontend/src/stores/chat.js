@@ -28,11 +28,13 @@ export const useChatStore = defineStore('chat', {
   getters: {
     activeMessages: (state) => state.messages,
     sortedConversations: (state) => {
-      return [...state.conversations].sort((a, b) => {
-        const dateA = new Date(a.updated_at || a.created_at)
-        const dateB = new Date(b.updated_at || b.created_at)
-        return dateB - dateA
-      })
+      return [...state.conversations]
+        .filter(c => c.type === 'group' || c.latestMessage || (state.activeConversation && state.activeConversation.id === c.id))
+        .sort((a, b) => {
+          const dateA = new Date(a.updated_at || a.created_at)
+          const dateB = new Date(b.updated_at || b.created_at)
+          return dateB - dateA
+        })
     },
     activeTypingUsers: (state) => {
       if (!state.activeConversation) return []

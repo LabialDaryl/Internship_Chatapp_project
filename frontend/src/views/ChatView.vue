@@ -248,20 +248,22 @@ const handleWebRTCSignal = async ({ conversation_id, sender_id, action, data }) 
     callPartner.value = data.caller || { name: 'Incoming Call' }
     incomingOffer.value = data.offer
     isIncomingCallOpen.value = true
+    chatStore.showToast(`🔔 Incoming ${data.type || 'video'} call from ${callPartner.value.name}`)
   } else if (action === 'accept') {
     if (data?.answer) {
       await webrtcManager.handleAnswer(data.answer)
+      chatStore.showToast('✅ Call connected')
     }
   } else if (action === 'decline') {
     isIncomingCallOpen.value = false
     isActiveCallOpen.value = false
     webrtcManager.close()
-    chatStore.showToast('Call declined.')
+    chatStore.showToast(`🚫 ${callPartner.value?.name || 'User'} declined the call`)
   } else if (action === 'end') {
     isIncomingCallOpen.value = false
     isActiveCallOpen.value = false
     webrtcManager.close()
-    chatStore.showToast('Call ended.')
+    chatStore.showToast('📞 Call ended')
   } else if (action === 'ice' && data) {
     await webrtcManager.addIceCandidate(data)
   }
@@ -292,9 +294,13 @@ const handleAcceptCall = async () => {
 
 const handleDeclineCall = async () => {
   isIncomingCallOpen.value = false
+  chatStore.showToast('🚫 Call declined')
   if (chatStore.activeConversation) {
     await messagesService.sendCallSignal(chatStore.activeConversation.id, 'decline')
-    await messagesService.logCall(chatStore.activeConversation.id, activeCallType.value, 'declined', 0)
+    const res = await messagesService.logCall(chatStore.activeConversation.id, activeCallType.value, 'declined', 0)
+    if (res?.data) {
+      chatStore.fetchConversations()
+    }
   }
 }
 
