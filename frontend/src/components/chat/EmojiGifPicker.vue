@@ -69,7 +69,7 @@
           @click="emit('select-gif', gif.url)"
           class="h-24 rounded-xl overflow-hidden cursor-pointer border border-slate-800 hover:border-violet-500/80 transition-all transform hover:scale-105 group relative bg-slate-950"
         >
-          <img :src="gif.url" :alt="gif.title" class="w-full h-full object-cover" />
+          <img :src="gif.url" :alt="gif.title" @error="handleGifError(gif)" class="w-full h-full object-cover" />
         </div>
       </div>
     </div>
@@ -109,14 +109,14 @@ const emojiCategories = {
   }
 }
 
-const sampleGifs = [
-  { id: 1, title: 'Happy Dance', url: 'https://media.giphy.com/media/l3q2Z6S6n38zj4Jv2/giphy.gif' },
-  { id: 2, title: 'Mind Blown', url: 'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif' },
-  { id: 3, title: 'Cat Vibe', url: 'https://media.giphy.com/media/jpbnoe3UIa8TU8LM13/giphy.gif' },
-  { id: 4, title: 'Thumbs Up', url: 'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif' },
-  { id: 5, title: 'Laughing', url: 'https://media.giphy.com/media/M8x6Lk2QFmTu0/giphy.gif' },
-  { id: 6, title: 'Party Time', url: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' }
-]
+const sampleGifs = ref([
+  { id: 1, title: 'Happy Dance', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnZ5bmxybnJqYnIydnBqMGtyMnZpOG1scWkybjRraWNsbHFyZmFqZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0AM41dsqFz0lM4iI/giphy.gif' },
+  { id: 2, title: 'Mind Blown', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHlybnZocmZ4b281d2wzdm5scXcyOGoxNHN0dm10ZnlycDFsd2R0eCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/26ufdipQqU2lhNA4g/giphy.gif' },
+  { id: 3, title: 'Cat Vibe', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOWd0ZWNmZXJpd2tsYmJ5cnMxeWJqbjdrMG5ubXRmZHlhdmM1dHZrZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/CjmvTCZfKLWK91w8mu/giphy.gif' },
+  { id: 4, title: 'Thumbs Up', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExYnFkZDJyZzFvYWZ5NWV1MnU1MWFzMW1iNTR0ZjBxdDFudThtanRwZSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/111ebonMs90YLu/giphy.gif' },
+  { id: 5, title: 'Laughing', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExMHgyNDgzdnlyZms0dWVzNW9xYXhmdXZvZGF2eTliam1lczZ6cDFtZCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/M8x6Lk2QFmTu0/giphy.gif' },
+  { id: 6, title: 'Party Time', url: 'https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExMXl2b3JycXh0a2lqM3BveTJmZm5ncm14eXR4NmZzNWp0dHFid3RhYSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/g9582DNuQppxC/giphy.gif' }
+])
 
 const filteredGifs = computed(() => {
   if (!gifQuery.value.trim()) return sampleGifs
