@@ -295,8 +295,9 @@ export const useChatStore = defineStore('chat', {
       }
     },
 
-    async sendMessage(body) {
-      if (!this.activeConversation || !body.trim()) return
+    async sendMessage(body, type = 'text') {
+      const cleanBody = typeof body === 'string' ? body.trim() : String(body || '')
+      if (!this.activeConversation || !cleanBody) return
 
       const authStore = useAuthStore()
       const parentId = this.replyingToMessage?.id || null
@@ -310,8 +311,8 @@ export const useChatStore = defineStore('chat', {
         parent: parentObj,
         sender_id: authStore.user?.id,
         sender: authStore.user,
-        body: body.trim(),
-        type: 'text',
+        body: cleanBody,
+        type: type || 'text',
         created_at: new Date().toISOString(),
       }
 
@@ -319,7 +320,7 @@ export const useChatStore = defineStore('chat', {
       this.replyingToMessage = null
 
       try {
-        const actualMessage = await messagesService.sendMessage(this.activeConversation.id, body.trim(), 'text', parentId)
+        const actualMessage = await messagesService.sendMessage(this.activeConversation.id, cleanBody, type || 'text', parentId)
         
         const alreadyAddedIdx = this.messages.findIndex(m => m.id === actualMessage.id)
 
@@ -335,11 +336,12 @@ export const useChatStore = defineStore('chat', {
         const conv = this.conversations.find(c => c.id === this.activeConversation.id)
         if (conv) {
           conv.latestMessage = actualMessage
-          conv.updated_at = new Date().toISOString()
+          conv.updated_at = actualMessage.created_at
         }
       } catch (err) {
         this.messages = this.messages.filter(m => m.id !== tempId)
         this.error = err.response?.data?.message || 'Failed to send message'
+        throw err
       }
     },
 
